@@ -5,6 +5,7 @@ import type { SxProps, Theme } from '@mui/material';
 import { Brightness7, PauseOutlined, PlayArrow } from '@mui/icons-material';
 // import { SettingsSlider } from '../pages/Settings/SettingsComponents';
 import useStore from '../store/useStore';
+import BPMBar from './BPMBar'
 
 const GlobalActionBar = ({
   className,
@@ -36,6 +37,7 @@ const GlobalActionBar = ({
       direction="row"
       sx={{ minWidth: 250, alignItems: 'center', ...sx }}
     >
+      <BPMBar />
       {type === 'icon' ? (
         <IconButton
           color="inherit"
