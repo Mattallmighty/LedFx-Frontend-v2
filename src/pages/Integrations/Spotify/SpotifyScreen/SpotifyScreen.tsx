@@ -22,6 +22,7 @@ import SpotifyWidgetPro from '../../../../components/Integrations/Spotify/Widget
 import SpAudioFeatures from '../../../../components/Integrations/Spotify/Widgets/SpotifyWidgetPro/SpAudioFeatures/SpAudioFeatures'
 import SpotifyTriggerTable from '../../../../components/Integrations/Spotify/Widgets/SpotifyWidgetPro/SpTriggerTable'
 import SpPlaylist from '../../../../components/Integrations/Spotify/Widgets/SpotifyWidgetPro/SpPlaylist'
+import KaleidoSyncVisualizer from '../../../../components/Integrations/Spotify/Widgets/SpotifyWidgetPro/KaleidoSyncVisualizer'
 
 export default function SpotifyScreen({
   icon = <Settings />,
@@ -114,6 +115,8 @@ export default function SpotifyScreen({
           </Grid>
           <div style={{ marginTop: '1rem' }} />
           <SpotifyTriggerTable />
+          <div style={{ marginTop: '1rem' }} />
+          <KaleidoSyncVisualizer />
         </div>
         {/* <SpotifyWidgetSmall  />
         <div style={{ marginTop: '2rem' }} />
