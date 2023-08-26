@@ -1,17 +1,21 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/indent */
 import * as React from 'react';
+import { useContext, useEffect } from 'react'
 import {
   DataGrid,
   GridColDef,
   GridValueGetterParams,
   GridRowParams,
 } from '@mui/x-data-grid';
+// Libraries conisdering using for 3D visualizer: react-three-fiber, d3, d3-array, d3-interpolate, d3-scale,
+// Libraries for taking realtime audio to VISUAL: audio-decode, essentia.js, 
+// Interesting @magenta/music - 
 
 import { Card, Grid, IconButton , Stack } from '@mui/material';
 import { PlayCircleFilled } from '@mui/icons-material';
 import useStore from '../../../../../store/useStore';
-import { spotifyPlaySong } from '../../../../../utils/spotifyProxies';
+import { spotifyPlaySong, getTrackArtist, getTrackFeatures, getTrackAnalysis} from '../../../../../utils/spotifyProxies';
 import { classes } from './SpTriggerTable';
 import { SpotifyStateContext } from '../../SpotifyProvider';
 
@@ -20,6 +24,37 @@ export default function KaleidoSyncVisualizer() {
   const playerState = React.useContext(SpotifyStateContext);
   const playlistUri = playerState?.context?.metadata?.uri;
   const spotifyDevice = useStore((state) => state.spotify.spotifyDevice);
+  const spotifyState = useContext(SpotifyStateContext)
+  const TrackAnalysis = useStore(
+    (state) => state.spotify.spotifyData.TrackAnalysis
+  )
+  // const audioFeatures = useStore(
+  //   (state) => state.spotify.spotifyData.audioFeatures
+  // )
+  // const artist = useStore((state) => state.spotify.spotifyData.Artist)
+  const songID = spotifyState?.track_window?.current_track?.id || ''
+  const artistID =
+    spotifyState?.track_window?.current_track?.artists[0].uri
+      .split(':')
+      .pop() || ''
+  const spotifyToken = useStore((state) => state.spotify.spotifyAuthToken)
+  const setSpotifyData = useStore((state) => state.setSpData)
+
+  const meta = spotifyState?.context?.metadata?.current_item?.name
+
+  useEffect(() => {
+    if (songID) {
+      getTrackFeatures(songID, spotifyToken).then((res) => {
+        setSpotifyData('audioFeatures', res)
+      })
+      getTrackAnalysis(songID, spotifyToken).then((res) => {
+        setSpotifyData('TrackAnalysis', res)
+      })
+      getTrackArtist(artistID, spotifyToken).then((res) => {
+        setSpotifyData('Artist', res)
+      })
+    }
+  }, [meta])
   const columns: GridColDef[] = [
     {
       field: 'actions',
