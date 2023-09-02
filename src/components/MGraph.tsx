@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { useEffect, useState } from 'react'
 import { Line } from 'react-chartjs-2'
 import {
@@ -11,7 +10,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler,
+  Filler
 } from 'chart.js'
 import {
   Card,
@@ -20,8 +19,10 @@ import {
   Slider,
   Switch,
   TextField,
-  useTheme,
+  Typography,
+  useTheme
 } from '@mui/material'
+import * as d3 from 'd3'
 import BladeFrame from './SchemaForm/components/BladeFrame'
 
 ChartJS.register(
@@ -92,9 +93,9 @@ const MGraph = () => {
             fill: true,
             borderColor: theme.palette.primary.main,
             pointRadius: 0,
-            data: messageData.melbank,
-          },
-        ],
+            data: messageData.melbank
+          }
+        ]
       }
 
       // Adjust the axes based on the max
@@ -104,63 +105,50 @@ const MGraph = () => {
         tooltips: { enabled: false },
         hover: {
           animationDuration: 0,
-          mode: null,
+          mode: null
         },
         animation: {
-          duration: animationDuration,
+          duration: animationDuration
         },
         responsiveAnimationDuration: 0,
         scales: {
-          xAxis: {
-            display: false,
-            maxTicksLimit: 3,
-          },
           x: {
             display: true,
             title: {
               display: true,
-              text: 'Frequency',
+              text: 'Frequency'
             },
             ticks: {
               borderColor: '#fff',
               maxTicksLimit: 12,
               callback(value: any, _index: any, _values: any) {
                 return `${value} Hz`
-              },
+              }
             },
             grid: {
-              color: 'rgba(255, 255, 255, 0)',
-              // borderColor: 'rgba(255, 255, 255, 0.15)',
+              color: 'rgba(255, 255, 255, 0)'
             },
-            ...(scaleType && { type: 'logarithmic' }),
-          },
-          yAxis: {
-            min: 0,
-            max: 2.0
+            ...(scaleType && { type: 'logarithmic' })
           },
           y: {
             title: {
               display: true,
-              text: 'Melbank',
+              text: 'Melbank'
             },
             ticks: {
               display: false,
               maxTicksLimit: 7,
               callback(value: any, _index: any, _values: any) {
                 return `${parseFloat(value).toFixed(2)}`
-              },
-            },
-            // grid: {
-            //   color: 'rgba(255, 255, 255, 0)',
-            //   // borderColor: 'rgba(255, 255, 255, 0.15)',
-            // },
-          },
+              }
+            }
+          }
         },
         plugins: {
           legend: {
-            display: false,
-          },
-        },
+            display: false
+          }
+        }
       }
       setData({ chartData, chartOptions })
     }
@@ -170,7 +158,43 @@ const MGraph = () => {
     }
   }, [animationDuration, fillOpacity, scaleType])
 
-  
+  function updateVisualization(chartData: any, svg: any) {
+    // Create or update the visualization using the chartData
+    // You can use d3 functions such as selectAll, data, enter, append, etc. to create/update the visualization elements
+
+    // Example:
+    const xScale = d3
+      .scaleLinear()
+      .domain([0, chartData.length])
+      .range([0, width])
+
+    const yScale = d3
+      .scaleLinear()
+      .domain([0, d3.max(chartData, (d: any) => d.y)])
+      .range([chartHeight, 0])
+
+    const bars = svg.selectAll('.bar').data(chartData, (d: any) => d.x)
+
+    bars.enter().append('rect').attr('class', 'bar')
+
+    bars
+      .attr('x', (d: any) => xScale(d.x))
+      .attr('y', (d: any) => yScale(d.y))
+      .attr('width', barWidth)
+      .attr('height', (d: any) => chartHeight - yScale(d.y))
+
+    bars.exit().remove()
+  }
+
+  function updateChart(newData: any) {
+    // Update the chart data
+    ChartJS.updateData(newData)
+
+    // Update the visualization
+    const svg = d3.select('#chart-container-d3 svg')
+    updateVisualization(newData, svg)
+  }
+
   return (
     <div>
       <Card
@@ -178,7 +202,7 @@ const MGraph = () => {
           maxWidth: 720,
           width: '100%',
           margin: '3rem',
-          background: '#1c1c1e',
+          background: '#1c1c1e'
         }}
       >
         <CardHeader title="Melbank Graph Settings" />
@@ -198,7 +222,7 @@ const MGraph = () => {
             />
             <TextField
               InputProps={{
-                endAdornment: 'ms',
+                endAdornment: 'ms'
               }}
               type="number"
               value={
@@ -208,7 +232,7 @@ const MGraph = () => {
               style={{
                 marginLeft: '2rem',
                 width: '130px',
-                backgroundColor: theme.palette.background.paper,
+                backgroundColor: theme.palette.background.paper
               }}
             />
           </BladeFrame>
@@ -225,7 +249,7 @@ const MGraph = () => {
             />
             <TextField
               InputProps={{
-                endAdornment: '%',
+                endAdornment: '%'
               }}
               type="number"
               value={typeof fillOpacity === 'number' ? fillOpacity : 0}
@@ -233,7 +257,7 @@ const MGraph = () => {
               style={{
                 marginLeft: '2rem',
                 width: '130px',
-                backgroundColor: theme.palette.background.paper,
+                backgroundColor: theme.palette.background.paper
               }}
             />
           </BladeFrame>
@@ -252,7 +276,7 @@ const MGraph = () => {
             />
             <TextField
               InputProps={{
-                endAdornment: '',
+                endAdornment: ''
               }}
               type="number"
               value={typeof lineTension === 'number' ? lineTension : 0}
@@ -260,7 +284,7 @@ const MGraph = () => {
               style={{
                 marginLeft: '2rem',
                 width: '130px',
-                backgroundColor: theme.palette.background.paper,
+                backgroundColor: theme.palette.background.paper
               }}
             />
           </BladeFrame>
@@ -277,13 +301,19 @@ const MGraph = () => {
         </CardContent>
       </Card>
       <div
+        id="chart-container"
         style={{ maxWidth: 720, width: '100%', height: 500, margin: '3rem' }}
       >
         {data?.chartData && data?.chartOptions && data?.chartData?.labels && (
           <Line data={data.chartData} options={data.chartOptions} />
         )}
       </div>
+      <div
+        id="chart-container-d3"
+        style={{ maxWidth: 720, width: '100%', height: 500, margin: '3rem' }}
+      />
     </div>
   )
 }
+
 export default MGraph
