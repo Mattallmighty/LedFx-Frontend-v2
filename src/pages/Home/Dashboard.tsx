@@ -25,6 +25,7 @@ import Popover from '../../components/Popover/Popover'
 import TourHome from '../../components/Tours/TourHome'
 import SmartBar from '../../components/Dialogs/SmartBar'
 import MGraph from '../../components/MGraph'
+import Visualizer from '../../components/Visualizer'
 
 const Dashboard = () => {
   const theme = useTheme()
@@ -356,7 +357,12 @@ const Dashboard = () => {
           </Stack>
         </Stack>
       </Stack>
-      {config.dev_mode && <MGraph />}
+      {config.dev_mode && (
+        <>
+          <MGraph />
+          <Visualizer />
+        </>
+      )}
     </div>
   )
 }
