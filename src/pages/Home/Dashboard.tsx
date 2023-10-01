@@ -25,7 +25,7 @@ import Popover from '../../components/Popover/Popover'
 import TourHome from '../../components/Tours/TourHome'
 import SmartBar from '../../components/Dialogs/SmartBar'
 import MGraph from '../../components/MGraph'
-import Visualiser from '../../components/Visualiser'
+import Visualiser from '../../components/Visualiser/Visualiser'
 
 const Dashboard = () => {
   const theme = useTheme()
