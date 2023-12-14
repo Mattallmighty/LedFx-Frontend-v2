@@ -20,14 +20,30 @@ const EditMatrix: FC<{ virtual: any }> = ({ virtual }) => {
   const deviceRef = useRef<HTMLInputElement | null>(null)
   const devices = useStore((state) => state.devices)
   const [currentDevice, setCurrentDevice] = useState<string>('')
-  const [rowN, setRowNumber] = useState<number>(4)
-  const [colN, setColNumber] = useState<number>(6)
+  const [rowN, setRowNumber] = useState<number>(virtual.config.rows || 4)
+  const [colN, setColNumber] = useState<number>(Math.ceil(virtual.pixel_count/(virtual.config.rows || 1)) || 6)
   const [currentCell, setCurrentCell] = useState<[number, number]>([-1, -1])
   const [open, setOpen] = useState<boolean>(false)
   const [group, setGroup] = useState<boolean>(false)
   const [selectedPixel, setSelectedPixel] = useState<number | number[]>(0)
   const [direction, setDirection] = useState<IDir>('right')
   const [m, setM] = useState<IMCell[][]>(Array(rowN).fill(Array(colN).fill(MCell)))
+
+  const [pixels, setPixels] = useState<any>([]);
+  const pixelGraphs = useStore((state) => state.pixelGraphs);
+  const virtuals = useStore((state) => state.virtuals);
+
+  useEffect(() => {
+    const handleWebsockets = (e: any) => {
+      if (e.detail.id === virtual.id) {        
+        setPixels(e.detail.pixels);
+      }
+    };
+    document.addEventListener('YZ', handleWebsockets);
+    return () => {
+      document.removeEventListener('YZ', handleWebsockets);
+    };
+  }, [virtuals, pixelGraphs]);
 
   const closeClear = () => {
     setOpen(false)
@@ -202,7 +218,10 @@ const EditMatrix: FC<{ virtual: any }> = ({ virtual }) => {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {m.map((yzrow, currentRowIndex) => <div key={`row-${currentRowIndex}`} style={{ display: 'flex' }}>
               {yzrow.map((yzcolumn: IMCell, currentColIndex: number) => (
-                <Box key={`col-${currentColIndex}`} className={classes.gridCell} onContextMenu={(e) => {
+                <Box key={`col-${currentColIndex}`} className={classes.gridCell} sx={{ 
+                  backgroundColor: pixels && pixels[0] && pixels[0].length ? `rgb(${pixels[0][currentRowIndex*colN + currentColIndex]},${pixels[1][currentRowIndex*colN + currentColIndex]},${pixels[2][currentRowIndex*colN + currentColIndex]})` : '#222',
+                  opacity: yzcolumn.deviceId !== '' ? 1 : 0.3,
+                }} onContextMenu={(e) => {
                   e.preventDefault()
                   setCurrentCell([currentColIndex, currentRowIndex])
                   setCurrentDevice(yzcolumn.deviceId !== '' ? yzcolumn.deviceId : '')

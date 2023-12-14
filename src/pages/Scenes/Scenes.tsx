@@ -104,6 +104,7 @@ const Scenes = () => {
       >
         <Collapse in={infoAlerts.scenes}>
           <Alert
+            sx={{ mb: 2 }}
             severity="info"
             onClose={() => {
               setInfoAlerts('scenes', false)
@@ -267,7 +268,9 @@ const Scenes = () => {
                     >
                       {scenes[s].name || s}
                     </Typography>
-                    <ScenesMenu sceneId={s} />
+                    {!(
+                      window.localStorage.getItem('guestmode') === 'activated'
+                    ) && <ScenesMenu sceneId={s} />}
                   </CardActions>
                 </Card>
               </Grid>
@@ -277,7 +280,6 @@ const Scenes = () => {
           <NoYet type="Scene" />
         )}
       </Grid>
-
       {/* {scenes && Object.keys(scenes).length && <ScenesTable scenes={scenes} />} */}
     </>
   )

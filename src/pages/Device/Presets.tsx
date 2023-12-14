@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/indent */
 import { useState, useEffect } from 'react'
 import {
   Card,
@@ -10,9 +9,12 @@ import {
   Grid,
   Typography,
   TextField,
-  useTheme
+  useTheme,
+  Stack,
+  Box,
+  CircularProgress
 } from '@mui/material'
-import { Add, Cloud } from '@mui/icons-material'
+import { Add, Cloud, Delete, Sync } from '@mui/icons-material'
 import axios from 'axios'
 import useStore from '../../store/useStore'
 import Popover from '../../components/Popover/Popover'
@@ -26,7 +28,12 @@ const cloud = axios.create({
 const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
   const [name, setName] = useState('')
   const [valid, setValid] = useState(true)
+  const [cloudEffects, setCloudEffects] = useState<any>([])
+  const [cloudConfigs, setCloudConfigs] = useState<any>([])
+  const [isLoading, setIsLoading] = useState(false)
+
   const theme = useTheme()
+  const setEffect = useStore((state) => state.setEffect)
   const activatePreset = useStore((state) => state.activatePreset)
   const addPreset = useStore((state) => state.addPreset)
   const getPresets = useStore((state) => state.getPresets)
@@ -34,6 +41,24 @@ const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
   const deletePreset = useStore((state) => state.deletePreset)
   const isLogged = useStore((state) => state.isLogged)
   const features = useStore((state) => state.features)
+  const getSystemConfig = useStore((state) => state.getSystemConfig)
+  const setSystemConfig = useStore((state) => state.setSystemConfig)
+
+  const getCloudConfigs = async () => {
+    const response = await cloud.get(
+      `configs?user.username=${localStorage.getItem('username')}`,
+      {
+        headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
+      }
+    )
+    if (response.status !== 200) {
+      // eslint-disable-next-line no-alert
+      alert('No Access')
+      return
+    }
+    const res = await response.data
+    setCloudConfigs(res)
+  }
 
   const uploadPresetCloud = async (list: any, preset: any) => {
     const existing = await cloud.get(
@@ -52,6 +77,7 @@ const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
         Authorization: `Bearer ${localStorage.getItem('jwt')}`
       }
     })
+
     const effId = await eff.data[0].id
     // console.log(exists, existing)
     if (exists.length && exists.length > 0) {
@@ -108,6 +134,32 @@ const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
     }
   }
 
+  const getCloudPresets = async () => {
+    const response = await cloud.get(`presets?effect.ledfx_id=${effectType}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
+    })
+    if (response.status !== 200) {
+      // eslint-disable-next-line no-alert
+      alert('No Access')
+      return
+    }
+    const res = await response.data
+    const cEffects = {} as any
+    res.forEach((p: { effect: { Name: string } }) => {
+      if (!cEffects[p.effect.Name]) cEffects[p.effect.Name] = []
+      cEffects[p.effect.Name].push(p)
+    })
+    setCloudEffects(cEffects)
+  }
+
+  const handleCloudPresets = async (p: any, save: boolean) => {
+    await setEffect(virtual.id, p.effect.ledfx_id, p.config, true)
+    if (save) {
+      await addPreset(virtual.id, p.Name)
+      await getPresets(p.effect.ledfx_id)
+    }
+  }
+
   const handleAddPreset = () => {
     addPreset(virtual.id, name).then(() => {
       getPresets(effectType)
@@ -130,11 +182,7 @@ const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
   const renderPresetsButton = (list: any, CATEGORY: string) => {
     if (list && !Object.keys(list)?.length) {
       return (
-        <Button
-          style={{ margin: '0.5rem 0 0.5rem 0.5rem' }}
-          size="small"
-          disabled
-        >
+        <Button style={{ margin: '1rem 0 0.5rem 1rem' }} size="medium" disabled>
           No {CATEGORY === 'default_presets' ? '' : 'Custom'} Presets
         </Button>
       )
@@ -184,6 +232,46 @@ const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
     if (effectType) getPresets(effectType)
   }, [getVirtuals, effectType])
 
+  useEffect(() => {
+    if (features.cloud && !!localStorage.getItem('jwt') && isLogged) {
+      getCloudPresets()
+    }
+  }, [isLogged, effectType])
+
+  const syncPresets = async () => {
+    if (cloudEffects && isLogged) {
+      setIsLoading(true)
+
+      const promises = Object.keys(cloudEffects).flatMap((effect) => {
+        return cloudEffects[effect].map((p: any, ind: number) => {
+          return new Promise((resolve) => {
+            if (!presets.custom_presets[p.effect.ledfx_id]) {
+              setTimeout(() => {
+                handleCloudPresets(p, true)
+                resolve(null)
+              }, 1000 * ind)
+            } else {
+              resolve(null)
+            }
+          })
+        })
+      })
+
+      await Promise.all(promises)
+      getVirtuals()
+      setIsLoading(false)
+    }
+  }
+
+  // Auto sync presets on load
+  // useEffect(() => {
+  //   syncPresets().then(() => getVirtuals())
+  // }, [cloudEffects, presets])
+
+  useEffect(() => {
+    if (isLogged) getCloudConfigs()
+  }, [isLogged])
+
   return (
     <Card variant="outlined" className="step-device-three" style={style}>
       <CardHeader
@@ -205,7 +293,6 @@ const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
               variant="outlined"
               onSingleClick={() => {
                 // eslint-disable-next-line no-console
-                console.log('hi')
               }}
               content={
                 <TextField
@@ -227,13 +314,13 @@ const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
                       ).length > 0)
                       ? 'Default presets are readonly'
                       : presets.custom_presets &&
-                        (Object.keys(presets.custom_presets).indexOf(name) >
-                          -1 ||
-                          Object.values(presets.custom_presets).filter(
-                            (p: any) => p.name === name
-                          ).length > 0)
-                      ? 'Preset already exsisting'
-                      : 'Add Custom Preset'
+                          (Object.keys(presets.custom_presets).indexOf(name) >
+                            -1 ||
+                            Object.values(presets.custom_presets).filter(
+                              (p: any) => p.name === name
+                            ).length > 0)
+                        ? 'Preset already exsisting'
+                        : 'Add Custom Preset'
                   }
                   style={{ marginRight: '1rem', flex: 1 }}
                   value={name}
@@ -283,10 +370,10 @@ const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
         </Grid>
       </CardContent>
       <CardActions>
-        <div style={{ flexDirection: 'column', flex: 1 }}>
+        <div style={{ flexDirection: 'column', flex: 1, padding: '0 0.5rem' }}>
           <div
             style={{
-              marginLeft: '0.5rem',
+              marginLeft: '0.25rem',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'flex-end'
@@ -298,16 +385,57 @@ const PresetsCard = ({ virtual, effectType, presets, style }: any) => {
             >
               Long-Press or right-click to open context-menu
             </Typography>
-            {features.cloud && !!localStorage.getItem('jwt') && isLogged && (
-              <CloudScreen
-                virtId={virtual.id}
-                effectType={effectType}
-                variant="outlined"
-                label="get more online"
-                startIcon={<Cloud />}
-              />
-            )}
           </div>
+          {features.cloud && !!localStorage.getItem('jwt') && isLogged && (
+            <>
+              <Divider style={{ margin: '0.5rem 0' }} />
+              <Stack direction="row" spacing={2}>
+                <Button
+                  disabled={isLoading}
+                  startIcon={
+                    isLoading ? (
+                      <Box sx={{ display: 'flex' }}>
+                        <CircularProgress size="1rem" />
+                      </Box>
+                    ) : (
+                      <Sync />
+                    )
+                  }
+                  onClick={() => syncPresets()}
+                >
+                  Sync from Cloud
+                </Button>
+                <CloudScreen
+                  virtId={virtual.id}
+                  effectType={effectType}
+                  variant="outlined"
+                  label="get more online"
+                  startIcon={<Cloud />}
+                />
+              </Stack>
+            </>
+          )}
+
+          {cloudConfigs.some(
+            (c: any) => Object.keys(c.config.user_presets).length > 0
+          ) && (
+            <>
+              <Divider style={{ margin: '0.5rem 0' }} />
+
+              <Popover
+                onConfirm={() =>
+                  setSystemConfig({ user_presets: {} }).then(() => {
+                    getPresets(effectType)
+                    getSystemConfig()
+                  })
+                }
+                startIcon={<Delete />}
+                color="inherit"
+                variant="outlined"
+                label="clear all user_presets from all effects"
+              />
+            </>
+          )}
         </div>
       </CardActions>
     </Card>

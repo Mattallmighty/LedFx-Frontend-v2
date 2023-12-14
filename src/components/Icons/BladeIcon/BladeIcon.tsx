@@ -1,3 +1,4 @@
+/* eslint-disable react/no-danger */
 import { Icon } from '@mui/material'
 import Wled from '../Wled'
 import RazerMouse from '../RzrMouse'
@@ -9,6 +10,14 @@ import {
   YZLogo2Y,
   YZLogo2Z
 } from '../YZ-Logo2'
+import {
+  YZLogo3,
+  YZLogo3Left,
+  YZLogo3Right,
+  YZLogo3Top,
+  YZLogo3Y,
+  YZLogo3Z
+} from '../YZ-Logo3'
 import { camelToSnake } from '../../../utils/helpers'
 import '../../../assets/materialdesignicons.css'
 import '../../../index.css'
@@ -47,6 +56,24 @@ function BladeIcon({
             marginTop: '3px'
           }}
         />
+      ) : name.startsWith('<svg') ? (
+        <div
+          style={{
+            transform: card ? 'unset' : scene ? 'scale(1)' : 'scale(0.012)',
+            marginTop: '3px'
+          }}
+          dangerouslySetInnerHTML={{ __html: name }}
+        />
+      ) : name.startsWith('https://') ? (
+        <img
+          src={name.replaceAll('#000000', 'currentColor')}
+          width={50}
+          alt="icon"
+          style={{
+            transform: card ? 'unset' : scene ? 'scale(1)' : 'scale(0.012)',
+            marginTop: '3px'
+          }}
+        />
       ) : name.startsWith('yz:logo2z') ? (
         <YZLogo2Z
           style={{
@@ -73,6 +100,48 @@ function BladeIcon({
           style={{
             // eslint-disable-next-line prettier/prettier
             transform: card ? 'unset' : scene ? 'scale(1)' : intro ? 'scale(0.05)' : 'scale(0.012)',
+            marginTop: '3px'
+          }}
+        />
+      ) : name.startsWith('yz:logo3y') ? (
+        <YZLogo3Y
+          style={{
+            transform: card ? 'unset' : scene ? 'scale(1)' : 'scale(0.012)',
+            marginTop: '3px'
+          }}
+        />
+      ) : name.startsWith('yz:logo3z') ? (
+        <YZLogo3Z
+          style={{
+            transform: card ? 'unset' : scene ? 'scale(1)' : 'scale(0.012)',
+            marginTop: '3px'
+          }}
+        />
+      ) : name.startsWith('yz:logo3top') ? (
+        <YZLogo3Top
+          style={{
+            transform: card ? 'unset' : scene ? 'scale(1)' : 'scale(0.012)',
+            marginTop: '3px'
+          }}
+        />
+      ) : name.startsWith('yz:logo3left') ? (
+        <YZLogo3Left
+          style={{
+            transform: card ? 'unset' : scene ? 'scale(1)' : 'scale(0.012)',
+            marginTop: '3px'
+          }}
+        />
+      ) : name.startsWith('yz:logo3right') ? (
+        <YZLogo3Right
+          style={{
+            transform: card ? 'unset' : scene ? 'scale(1)' : 'scale(0.012)',
+            marginTop: '3px'
+          }}
+        />
+      ) : name.startsWith('yz:logo3') ? (
+        <YZLogo3
+          style={{
+            transform: card ? 'unset' : scene ? 'scale(1)' : 'scale(0.012)',
             marginTop: '3px'
           }}
         />

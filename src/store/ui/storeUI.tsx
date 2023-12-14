@@ -26,9 +26,14 @@ const storeUI = (set: any) => ({
     ),
   infoAlerts: {
     scenes: true,
-    devices: true
+    devices: true,
+    user: true,
+    gamepad: true
   },
-  setInfoAlerts: (key: 'scenes' | 'devices', val: boolean): void =>
+  setInfoAlerts: (
+    key: 'scenes' | 'devices' | 'user' | 'gamepad',
+    val: boolean
+  ): void =>
     set(
       produce((state: IStore) => {
         state.ui.infoAlerts[key] = val
@@ -64,6 +69,9 @@ const storeUI = (set: any) => ({
     smartBar: {
       open: false
     },
+    smartBarPad: {
+      open: false
+    },
     bottomBar: [] as any
   },
   setLeftBarOpen: (open: boolean): void =>
@@ -92,6 +100,14 @@ const storeUI = (set: any) => ({
     set(
       produce((state: IStore) => {
         state.ui.bars.smartBar.open = open
+      }),
+      false,
+      'ui/setSmartBarOpen'
+    ),
+  setSmartBarPadOpen: (open: boolean): void =>
+    set(
+      produce((state: IStore) => {
+        state.ui.bars.smartBarPad.open = open
       }),
       false,
       'ui/setSmartBarOpen'

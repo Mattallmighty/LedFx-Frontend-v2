@@ -6,6 +6,7 @@
 import { produce } from 'immer'
 import { Ledfx } from '../../api/ledfx'
 import type { IStore, IOpenRgbDevice } from '../useStore'
+import nameToIcon from '../../utils/nameToIcon'
 
 const storeActions = (set: any) => ({
   scanForOpenRgbDevices: async () => {
@@ -26,7 +27,12 @@ const storeActions = (set: any) => ({
               icon_name:
                 d.type === 0 ? 'mdi:chip'
               : d.type === 2 ? 'mdi:expansion-card-variant'
+              : d.type === 5 ? 'mdi:keyboard'
               : d.type === 6 ? (d.name.includes('Razer') ? 'razer:mouse' : 'mouse')
+              : d.type === 8 ? 'mdi:headphones'
+              : d.type === 9 ? 'mdi:headphones-bluetooth'
+              : d.type === 10 ? 'sportsEsports'
+              : d.type === 12 ? 'mdi:speaker-wireless'
               : 'mdi:led-strip',
               center_offset: 0,
               refresh_rate: 64,
@@ -66,7 +72,9 @@ const storeActions = (set: any) => ({
     return false
   },
   scanForDevices: async () => {
-    const resp = await Ledfx('/api/find_devices', 'POST', {})
+    const resp = await Ledfx('/api/find_devices', 'POST', {
+      name_to_icon: nameToIcon
+    })
     if (!(resp && resp.status === 'success')) {
       set(
         produce((state: IStore) => {
@@ -83,7 +91,7 @@ const storeActions = (set: any) => ({
     const resp = await Ledfx('/api/virtuals', 'PUT', {})
     if (resp && resp.paused !== undefined) {
       set(
-        produce((s: any) => {
+        produce((s: IStore) => {
           s.paused = resp.paused
         }),
         false,

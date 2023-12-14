@@ -97,7 +97,7 @@ const SchemaForm = ({
                     style={{ margin: '0.5rem 0', flexBasis: '49%' }}
                     schema={s}
                     onClick={(model_id: string, value: any) => {
-                      const c: any = {}
+                      const c: Record<string, unknown> = {}
                       c[model_id] = value
                       if (onModelChange) {
                         return onModelChange(c)
@@ -139,7 +139,7 @@ const SchemaForm = ({
                       value={(model && model.audio_device) || 0}
                       fullWidth
                       onChange={(e: any) => {
-                        const c: any = {}
+                        const c: Record<string, unknown> = {}
                         c.audio_device = parseInt(e.target.value, 10)
                         if (onModelChange) {
                           return onModelChange(c)
@@ -182,6 +182,7 @@ const SchemaForm = ({
                       // eslint-disable-next-line
                       children={undefined}
                       hideDesc={hideDesc}
+                      type={type}
                       // hide={"test"}
                       model={model}
                       disabled={!s.permitted}
@@ -197,7 +198,7 @@ const SchemaForm = ({
                       key={i}
                       index={i}
                       onChange={(model_id: string, value: any) => {
-                        const c: any = {}
+                        const c: Record<string, unknown> = {}
                         c[model_id] = value
                         if (onModelChange) {
                           return onModelChange(c)
@@ -220,7 +221,7 @@ const SchemaForm = ({
                     required={s.required}
                     schema={s}
                     onChange={(model_id: string, value: any) => {
-                      const c: any = {}
+                      const c: Record<string, unknown> = {}
                       c[model_id] = value
                       if (onModelChange) {
                         return onModelChange(c)
@@ -247,7 +248,7 @@ const SchemaForm = ({
                     index={undefined}
                     style={{ margin: '0.5rem 0', width: '49%' }}
                     onChange={(model_id: string, value: any) => {
-                      const c: any = {}
+                      const c: Record<string, unknown> = {}
                       c[model_id] = value
                       if (onModelChange) {
                         return onModelChange(c)
@@ -271,7 +272,7 @@ const SchemaForm = ({
                     textfield={false}
                     style={{ margin: '0.5rem 0', width: '49%' }}
                     onChange={(model_id: string, value: any) => {
-                      const c: any = {}
+                      const c: Record<string, unknown> = {}
                       c[model_id] = value
                       if (onModelChange) {
                         return onModelChange(c)
@@ -293,7 +294,7 @@ const SchemaForm = ({
                     textfield={false}
                     style={{ margin: '0.5rem 0', width: '49%' }}
                     onChange={(model_id: string, value: any) => {
-                      const c: any = {}
+                      const c: Record<string, unknown> = {}
                       c[model_id] = value
                       if (onModelChange) {
                         return onModelChange(c)

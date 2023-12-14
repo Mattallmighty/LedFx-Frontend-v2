@@ -6,6 +6,7 @@ import storeGeneral from './ui/storeGeneral'
 import storeFeatures from './ui/storeFeatures'
 import storeTours from './ui/storeTours'
 import storeUI from './ui/storeUI'
+import storeUser from './ui/storeUser'
 import storeDialogs from './ui/storeDialogs'
 import storeSpotify from './ui/storeSpotify'
 import storeQLC from './ui/storeQLC'
@@ -15,6 +16,7 @@ import storeDevices from './api/storeDevices'
 import storeVirtuals from './api/storeVirtuals'
 import storeScenes from './api/storeScenes'
 import storeIntegrations from './api/storeIntegrations'
+import storeIntegrationsSpotify from './api/storeIntegrationsSpotify'
 import storePresets from './api/storePresets'
 import storeConfig from './api/storeConfig'
 import storeActions from './api/storeActions'
@@ -22,6 +24,7 @@ import storeColors from './api/storeColors'
 import storeSpotifyActions from './ui/storeSpotifyActions'
 import storeQLCActions from './ui/storeQLCActions'
 import storeNotifications from './ui/storeNotifications'
+import storePad from './ui/storePad'
 
 const useStore = create(
   devtools(
@@ -34,6 +37,8 @@ const useStore = create(
           ui: storeUI(set),
           spotify: storeSpotify(),
           qlc: storeQLC(),
+          user: storeUser(set),
+          ...storePad(set),
           ...storeNotifications(set),
           ...storeTours(set),
           ...storeSpotifyActions(set),
@@ -51,7 +56,8 @@ const useStore = create(
           ...storeIntegrations(set),
           ...storePresets(set),
           ...storeConfig(set),
-          ...storeActions(set)
+          ...storeActions(set),
+          ...storeIntegrationsSpotify(set)
         })
       ),
       {

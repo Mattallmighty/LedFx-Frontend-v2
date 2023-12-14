@@ -26,11 +26,13 @@ import LoginRedirect from './Login/LoginRedirect'
 import SmartBar from '../components/Dialogs/SmartBar'
 import useStore from '../store/useStore'
 import SpotifyLoginRedirect from './Integrations/Spotify/SpotifyLoginRedirect'
-import { drawerWidth } from '../utils/helpers'
+import { drawerWidth, ios } from '../utils/helpers'
 import User from './User/User'
+import Lock from './Lock'
 
 const Routings = ({ handleWs }: any) => {
   const theme = useTheme()
+  const isElect = isElectron()
   const smartBarOpen = useStore(
     (state) => state.ui.bars && state.ui.bars.smartBar.open
   )
@@ -42,10 +44,21 @@ const Routings = ({ handleWs }: any) => {
   )
 
   useHotkeys(['ctrl+alt+y', 'ctrl+alt+z'], () => setSmartBarOpen(!smartBarOpen))
+  useHotkeys(['ctrl+alt+g'], () => {
+    if (window.localStorage.getItem('guestmode') === 'activated') {
+      window.localStorage.removeItem('guestmode')
+    } else {
+      window.localStorage.setItem('guestmode', 'activated')
+    }
+    window.location.reload()
+  })
+  if (isElect) {
+    useHotkeys(['ctrl+alt+l'], () => {
+      window.localStorage.setItem('lock', 'activated')
+      window.location.reload()
+    })
+  }
 
-  const ios =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.userAgent === 'MacIntel' && navigator.maxTouchPoints > 1)
   return (
     <>
       <ScrollToTop />
@@ -82,18 +95,34 @@ const Routings = ({ handleWs }: any) => {
           }}
         />
         <Routes>
-          <Route
-            path="/connect/:providerName/redirect"
-            element={<LoginRedirect />}
-          />
-          <Route path="/" element={<Home />} />
-          <Route path="/devices" element={<Devices />} />
-          <Route path="/device/:virtId" element={<Device />} />
-          <Route path="/scenes" element={<Scenes />} />
-          <Route path="/integrations" element={<Integrations />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/user" element={<User />} />
-          <Route path="*" element={<Home />} />
+          {window.localStorage.getItem('lock') === 'activated' && isElect ? (
+            <Route path="*" element={<Lock />} />
+          ) : (
+            <>
+              <Route
+                path="/connect/:providerName/redirect"
+                element={<LoginRedirect />}
+              />
+              <Route path="/" element={<Home />} />
+              <Route path="/devices" element={<Devices />} />
+              <Route path="/device/:virtId" element={<Device />} />
+              <Route path="/scenes" element={<Scenes />} />
+              {!(window.localStorage.getItem('guestmode') === 'activated') && (
+                <Route path="/integrations" element={<Integrations />} />
+              )}
+              {!(window.localStorage.getItem('guestmode') === 'activated') && (
+                <Route path="/settings" element={<Settings />} />
+              )}
+              <Route path="/user" element={<User />} />
+              <Route
+                path="*"
+                element={
+                  // eslint-disable-next-line prettier/prettier
+                  !(window.localStorage.getItem('guestmode') === 'activated') ? <Home /> : <Scenes />
+                }
+              />
+            </>
+          )}
         </Routes>
         <NoHostDialog />
         <SmartBar
@@ -102,7 +131,9 @@ const Routings = ({ handleWs }: any) => {
           direct={false}
         />
       </Box>
-      <BottomBar />
+      {!(isElect && window.localStorage.getItem('lock') === 'activated') && (
+        <BottomBar />
+      )}
     </>
   )
 }

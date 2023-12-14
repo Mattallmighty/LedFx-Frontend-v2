@@ -27,6 +27,7 @@ import PixelGraph from '../../components/PixelGraph'
 import TourEffect from '../../components/Tours/TourEffect'
 import TroubleshootButton from './TroubleshootButton'
 import { Schema } from '../../components/SchemaForm/SchemaForm/SchemaForm.props'
+import { EffectConfig } from '../../store/api/storeVirtuals'
 
 const configOrder = ['color', 'number', 'integer', 'string', 'boolean']
 
@@ -41,13 +42,16 @@ const orderEffectProperties = (
     schema.properties &&
     Object.keys(schema.properties)
       .filter((k) => {
-        if (advanced_keys && advanced_keys.length > 0 && !advanced) {
-          return advanced_keys?.indexOf(k) === -1
-        }
         if (hidden_keys && hidden_keys.length > 0) {
           return hidden_keys?.indexOf(k) === -1
         }
-        return k
+        return true
+      })
+      .filter((ke) => {
+        if (advanced_keys && advanced_keys.length > 0 && !advanced) {
+          return advanced_keys?.indexOf(ke) === -1
+        }
+        return true
       })
       .map((sk) => ({
         ...schema.properties[sk],
@@ -59,6 +63,7 @@ const orderEffectProperties = (
   })
   ordered.push(...properties.filter((x) => !configOrder.includes(x.type)))
   return ordered
+    .sort((a) => (a.id === 'advanced' ? 1 : -1))
     .sort((a) => (a.type === 'string' && a.enum && a.enum.length ? -1 : 1))
     .sort((a) => (a.type === 'number' ? -1 : 1))
     .sort((a) => (a.type === 'integer' ? -1 : 1))
@@ -105,22 +110,24 @@ const EffectsCard = ({ virtId }: { virtId: string }) => {
       theModel?.advanced
     )
   const handleClearEffect = () => {
-    clearEffect(virtId).then(() => {
-      setFade(true)
-      setTimeout(() => {
-        getVirtuals()
-      }, virtual.config.transition_time * 1000)
-      setTimeout(
-        () => {
-          setFade(false)
-        },
-        virtual.config.transition_time * 1000 + 300
-      )
-    })
+    if (virtual) {
+      clearEffect(virtId).then(() => {
+        setFade(true)
+        setTimeout(() => {
+          getVirtuals()
+        }, virtual.config.transition_time * 1000)
+        setTimeout(
+          () => {
+            setFade(false)
+          },
+          virtual.config.transition_time * 1000 + 300
+        )
+      })
+    }
   }
 
-  const handleEffectConfig = (config: any) => {
-    if (updateEffect && getVirtuals !== undefined) {
+  const handleEffectConfig = (config: EffectConfig) => {
+    if (updateEffect && getVirtuals !== undefined && effectType) {
       updateEffect(virtId, effectType, config, false).then(() => {
         getVirtuals()
       })
@@ -128,7 +135,8 @@ const EffectsCard = ({ virtId }: { virtId: string }) => {
   }
 
   const handlePlayPause = () => {
-    updateVirtual(virtual.id, !virtual.active).then(() => getVirtuals())
+    if (virtual)
+      updateVirtual(virtual.id, !virtual.active).then(() => getVirtuals())
   }
 
   useEffect(() => {
@@ -141,7 +149,7 @@ const EffectsCard = ({ virtId }: { virtId: string }) => {
 
   useEffect(() => {
     if (virtuals && virtual?.effect?.config) setTheModel(virtual.effect.config)
-  }, [virtuals, virtual, virtual.effect, virtual.effect.config])
+  }, [virtuals, virtual, virtual?.effect, virtual?.effect.config])
 
   return (
     <>
@@ -222,7 +230,7 @@ const EffectsCard = ({ virtId }: { virtId: string }) => {
                   }
             }
             style={{
-              transitionDuration: `${virtual.config.transition_time * 1000}`
+              transitionDuration: `${virtual!.config.transition_time * 1000}`
             }}
           >
             <PixelGraph
@@ -277,15 +285,17 @@ const EffectsCard = ({ virtId }: { virtId: string }) => {
                   <Typography variant="h5">Effect Configuration</Typography>
                 </AccordionSummary>
                 <AccordionDetails style={{ padding: '0 0 8px 0' }}>
-                  <div>
-                    <BladeEffectSchemaForm
-                      handleEffectConfig={handleEffectConfig}
-                      virtId={virtual.id}
-                      schemaProperties={orderedProperties}
-                      model={theModel}
-                      selectedType={effectType}
-                    />
-                  </div>
+                  {theModel && effectType && (
+                    <div>
+                      <BladeEffectSchemaForm
+                        handleEffectConfig={handleEffectConfig}
+                        virtId={virtual.id}
+                        schemaProperties={orderedProperties}
+                        model={theModel as Record<string, unknown>}
+                        selectedType={effectType}
+                      />
+                    </div>
+                  )}
                 </AccordionDetails>
               </Accordion>
             </CardContent>

@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/indent */
 /* eslint-disable no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable prettier/prettier */
 import { useState, useEffect } from 'react'
 import useStore from '../../../store/useStore'
 import DeviceCard from './DeviceCard'
@@ -34,7 +34,7 @@ const DeviceCardWrapper = ({
   const showMatrix = useStore((state) => state.showMatrix)
 
   const [_fade, setFade] = useState(false)
-  const [_isActive, setIsActive] = useState(
+  const [_isActive, setIsActive] = useState<boolean>(
     (virtuals &&
       virtual &&
       virtuals[virtual] &&
@@ -42,7 +42,7 @@ const DeviceCardWrapper = ({
       Object.keys(virtuals[virtual].effect)?.length > 0) ||
       (devices &&
         devices[Object.keys(devices).find((d) => d === virtual) || '']
-          ?.active_virtuals?.length > 0)
+          ?.active_virtuals!.length > 0)
   )
 
   const handleDeleteDevice = () => {
@@ -90,9 +90,33 @@ const DeviceCardWrapper = ({
         virtuals[virtual] &&
         Object.keys(virtuals[virtual]?.effect)?.length > 0) ||
         devices[Object.keys(devices).find((d) => d === virtual) || '']
-          ?.active_virtuals?.length > 0
+          ?.active_virtuals!.length > 0
     )
   }, [virtuals, devices])
+
+  const order = () => {
+    if (showActiveDevicesFirst) {
+      if (virtuals[virtual]?.config.rows > 1 && !virtuals[virtual]?.effect.name && showMatrix) {
+        return -1
+      }
+      if (virtuals[virtual]?.config.rows > 1 && showMatrix) {
+        return -2
+      }
+      if (
+        !(
+          devices[Object.keys(devices).find((d) => d === virtual) || '']
+            ?.active_virtuals!.length > 0 || virtuals[virtual]?.effect.name
+        )
+      ) {
+        return 100
+      }
+      if (!virtuals[virtual]?.effect.name) {
+        return 50
+      }
+      return 'unset'
+    }
+    return 'unset'
+  }
 
   return virtual && virtuals[virtual] ? (
     <DeviceCard
@@ -126,7 +150,7 @@ const DeviceCardWrapper = ({
       transitionTime={virtuals[virtual].config.transition_time * 1000}
       isStreaming={
         devices[Object.keys(devices).find((d) => d === virtual) || '']
-          ?.active_virtuals?.length > 0
+          ?.active_virtuals!.length > 0
       }
       previewOnly={
         virtual &&
@@ -135,16 +159,7 @@ const DeviceCardWrapper = ({
       }
       isEffectSet={Object.keys(virtuals[virtual]?.effect)?.length > 0}
       additionalStyle={{
-        order: showActiveDevicesFirst
-          ? !(
-              devices[Object.keys(devices).find((d) => d === virtual) || '']
-                ?.active_virtuals?.length > 0 || virtuals[virtual]?.effect.name
-            )
-            ? 100
-            : !virtuals[virtual]?.effect.name
-            ? 50
-            : 'unset'
-          : 'unset'
+        order: order()
       }}
     />
   ) : null

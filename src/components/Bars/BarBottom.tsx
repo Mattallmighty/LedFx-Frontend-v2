@@ -22,13 +22,16 @@ import AddDeviceDialog from '../Dialogs/AddDeviceDialog'
 import AddVirtualDialog from '../Dialogs/AddVirtualDialog'
 import AddIntegrationDialog from '../Dialogs/AddIntegrationDialog'
 import SpotifyFabFree from '../Integrations/Spotify/SpotifyFabFree'
-import AddButton from '../AddButton'
+import AddButton from '../AddButton/AddButton'
 import YoutubeWidget from '../Integrations/Youtube/YoutubeWidget'
 import SpotifyFabPro from '../Integrations/Spotify/SpotifyFabPro'
 import MIDIListener from '../MidiInput'
-import { drawerWidth } from '../../utils/helpers'
+import { drawerWidth, ios } from '../../utils/helpers'
 import EditSceneDialog from '../Dialogs/SceneDialogs/EditSceneDialog'
 import BladeIcon from '../Icons/BladeIcon/BladeIcon'
+import AddWledDialog from '../Dialogs/AddWledDialog'
+import Gamepad from '../Gamepad/Gamepad'
+import SmartBar from '../Dialogs/SmartBar'
 
 export default function BarBottom() {
   const theme = useTheme()
@@ -42,21 +45,26 @@ export default function BarBottom() {
     (state) => state.ui.bars && state.ui.bars?.bottomBar
   )
 
-  // const setBottomBarOpen = useStore((state) => state.ui.setBottomBarOpen);
   const features = useStore((state) => state.features)
   const integrations = useStore((state) => state.integrations)
-
+  const activateScene = useStore((state) => state.activateScene)
+  const captivateScene = useStore((state) => state.captivateScene)
+  const smartBarPadOpen = useStore(
+    (state) => state.ui.bars && state.ui.bars.smartBarPad.open
+  )
+  const setSmartBarPadOpen = useStore(
+    (state) => state.ui.bars && state.ui.setSmartBarPadOpen
+  )
+  const scenes = useStore((state) => state.scenes)
+  const handleActivateScene = (e: string) => {
+    activateScene(e)
+    if (scenes[e]?.scene_puturl && scenes[e]?.scene_payload)
+      captivateScene(scenes[e]?.scene_puturl, scenes[e]?.scene_payload)
+  }
   const [spotifyEnabled, setSpotifyEnabled] = useState(false)
   const [spotifyExpanded, setSpotifyExpanded] = useState(false)
   const spotifyURL = useStore((state) => state.spotify.spotifyEmbedUrl)
   const setSpotifyURL = useStore((state) => state.setSpEmbedUrl)
-  const ios =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.userAgent === 'MacIntel' && navigator.maxTouchPoints > 1)
-
-  // const setSpotifyAuthURL = useStore(
-  //   (state) => state.setSpotifyAuthUrl
-  // );
 
   const [youtubeEnabled, setYoutubeEnabled] = useState(false)
   const [youtubeExpanded, setYoutubeExpanded] = useState(false)
@@ -120,15 +128,17 @@ export default function BarBottom() {
         showLabels
         style={{ bottom: botHeight, color: '#a1998e' }}
       >
-        <BottomNavigationAction
-          sx={{ minWidth: 50 }}
-          component={Link}
-          className="step-one"
-          label={features.dashboard ? 'Dashboard' : 'Home'}
-          value="/"
-          to="/"
-          icon={features.dashboard ? <Dashboard /> : <Home />}
-        />
+        {!(window.localStorage.getItem('guestmode') === 'activated') && (
+          <BottomNavigationAction
+            sx={{ minWidth: 50 }}
+            component={Link}
+            className="step-one"
+            label={features.dashboard ? 'Dashboard' : 'Home'}
+            value="/"
+            to="/"
+            icon={features.dashboard ? <Dashboard /> : <Home />}
+          />
+        )}
         <BottomNavigationAction
           label="Devices"
           value="/Devices"
@@ -162,41 +172,44 @@ export default function BarBottom() {
           // }}
         />
 
-        {features.integrations && (
+        {features.integrations &&
+          !(window.localStorage.getItem('guestmode') === 'activated') && (
+            <BottomNavigationAction
+              label="Integrations"
+              value="/Integrations"
+              component={Link}
+              to="/Integrations"
+              icon={<ElectricalServices />}
+              style={
+                bottomBarOpen.indexOf('Integrations') > -1
+                  ? { color: theme.palette.primary.main }
+                  : {}
+              }
+              // onContextMenu={(e: any) => {
+              //   e.preventDefault();
+              //   setBottomBarOpen('Integrations');
+              // }}
+            />
+          )}
+
+        {!(window.localStorage.getItem('guestmode') === 'activated') && (
           <BottomNavigationAction
-            label="Integrations"
-            value="/Integrations"
+            label="Settings"
+            value="/Settings"
+            icon={<Settings />}
             component={Link}
-            to="/Integrations"
-            icon={<ElectricalServices />}
+            to="/Settings"
             style={
-              bottomBarOpen.indexOf('Integrations') > -1
+              bottomBarOpen.indexOf('Settings') > -1
                 ? { color: theme.palette.primary.main }
                 : {}
             }
             // onContextMenu={(e: any) => {
             //   e.preventDefault();
-            //   setBottomBarOpen('Integrations');
+            //   setBottomBarOpen('Settings');
             // }}
           />
         )}
-
-        <BottomNavigationAction
-          label="Settings"
-          value="/Settings"
-          icon={<Settings />}
-          component={Link}
-          to="/Settings"
-          style={
-            bottomBarOpen.indexOf('Settings') > -1
-              ? { color: theme.palette.primary.main }
-              : {}
-          }
-          // onContextMenu={(e: any) => {
-          //   e.preventDefault();
-          //   setBottomBarOpen('Settings');
-          // }}
-        />
       </BottomNavigation>
       {features.spotify && (
         <SpotifyFabFree
@@ -206,7 +219,6 @@ export default function BarBottom() {
           setSpotifyExpanded={setSpotifyExpanded}
           spotifyURL={spotifyURL}
           setSpotifyURL={setSpotifyURL}
-          // setSpotifyAuthURL={setSpotifyAuthURL}
           botHeight={botHeight}
           setYoutubeEnabled={setYoutubeEnabled}
           setYoutubeExpanded={setYoutubeExpanded}
@@ -220,7 +232,6 @@ export default function BarBottom() {
           setSpotifyExpanded={setSpotifyExpanded}
           spotifyURL={spotifyURL}
           setSpotifyURL={setSpotifyURL}
-          // setSpotifyAuthURL={setSpotifyAuthURL}
           botHeight={botHeight}
           setYoutubeEnabled={setYoutubeEnabled}
           setYoutubeExpanded={setYoutubeExpanded}
@@ -242,39 +253,52 @@ export default function BarBottom() {
       {features.scenemidi && <MIDIListener />}
       <AddSceneDialog />
       <AddDeviceDialog />
+      <AddWledDialog />
       <AddVirtualDialog />
       <AddIntegrationDialog />
       <EditSceneDialog />
-      <AddButton
-        setBackdrop={setBackdrop}
-        sx={{
-          bottom: botHeight + 65,
-          position: 'fixed',
-          marginLeft: leftOpen ? `${drawerWidth / 2}px` : 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          transition: leftOpen
-            ? theme.transitions.create(['margin'], {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen
-              })
-            : theme.transitions.create(['margin'], {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen
-              }),
-          '&.MuiSpeedDial-directionUp, &.MuiSpeedDial-directionLeft': {
-            bottom: theme.spacing(2) + 25
-          },
-          '& > button.MuiFab-primary': {
-            backgroundColor: theme.palette.secondary.main
-          },
-          '& .MuiSpeedDialAction-staticTooltipLabel': {
-            backgroundColor: 'transparent',
-            marginLeft: '-1rem'
-          }
-        }}
-        className="step-four"
-      />
+      {features.gamepad && (
+        <>
+          <Gamepad setScene={handleActivateScene} bottom={botHeight + 65} />
+          <SmartBar
+            open={smartBarPadOpen}
+            setOpen={setSmartBarPadOpen}
+            direct={false}
+          />
+        </>
+      )}
+      {!(window.localStorage.getItem('guestmode') === 'activated') && (
+        <AddButton
+          setBackdrop={setBackdrop}
+          sx={{
+            bottom: botHeight + 65,
+            position: 'fixed',
+            marginLeft: leftOpen ? `${drawerWidth / 2}px` : 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            transition: leftOpen
+              ? theme.transitions.create(['margin'], {
+                  easing: theme.transitions.easing.easeOut,
+                  duration: theme.transitions.duration.enteringScreen
+                })
+              : theme.transitions.create(['margin'], {
+                  easing: theme.transitions.easing.sharp,
+                  duration: theme.transitions.duration.leavingScreen
+                }),
+            '&.MuiSpeedDial-directionUp, &.MuiSpeedDial-directionLeft': {
+              bottom: theme.spacing(2) + 25
+            },
+            '& > button.MuiFab-primary': {
+              backgroundColor: theme.palette.secondary.main
+            },
+            '& .MuiSpeedDialAction-staticTooltipLabel': {
+              backgroundColor: 'transparent',
+              marginLeft: '-1rem'
+            }
+          }}
+          className="step-four"
+        />
+      )}
       <Backdrop
         style={{ zIndex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
         open={backdrop}

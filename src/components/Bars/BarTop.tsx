@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable react/destructuring-assignment */
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -28,7 +28,7 @@ import {
 import { styled } from '@mui/styles'
 import { useTheme } from '@mui/material/styles'
 import useStore from '../../store/useStore'
-import { drawerWidth } from '../../utils/helpers'
+import { drawerWidth, ios } from '../../utils/helpers'
 import TourDevice from '../Tours/TourDevice'
 import TourScenes from '../Tours/TourScenes'
 import TourSettings from '../Tours/TourSettings'
@@ -38,6 +38,7 @@ import BladeIcon from '../Icons/BladeIcon/BladeIcon'
 import GlobalActionBar from '../GlobalActionBar'
 import pkg from '../../../package.json'
 import { Ledfx } from '../../api/ledfx'
+import TourHome from '../Tours/TourHome'
 
 export const StyledBadge = styled(Badge)(() => ({
   '& .MuiBadge-badge': {
@@ -50,14 +51,106 @@ export const StyledBadge = styled(Badge)(() => ({
   }
 }))
 
+const LeftButtons = (
+  pathname: any,
+  history: any,
+  open?: boolean,
+  handleLeftBarOpen?: any
+) => {
+  const theme = useTheme()
+
+  if (
+    (pathname.split('/').length === 3 && pathname.split('/')[1] === 'device') ||
+    pathname === '/Settings'
+  ) {
+    if (ios) {
+      return (
+        <IconButton size="large" color="inherit" onClick={() => history(-1)}>
+          <ChevronLeft sx={{ fontSize: 32 }} />
+        </IconButton>
+      )
+    }
+    return (
+      <Button
+        size="large"
+        variant="text"
+        color="inherit"
+        startIcon={<ChevronLeft />}
+        onClick={() => history(-1)}
+      >
+        Back
+      </Button>
+    )
+  }
+  if (!open) {
+    if (ios) {
+      return (
+        <Box
+          style={{
+            backgroundImage: 'url(/icon.png)',
+            marginTop: 10,
+            width: 32,
+            height: 32,
+            backgroundSize: 'contain'
+          }}
+          onClick={handleLeftBarOpen}
+        />
+      )
+    }
+    return (
+      <IconButton
+        color="inherit"
+        aria-label="open drawer"
+        onClick={handleLeftBarOpen}
+        edge="start"
+        sx={{ marginRight: theme.spacing(2), top: 8 }}
+        className="step-three"
+      >
+        <MenuIcon />
+      </IconButton>
+    )
+  }
+  return null
+}
+
+const Title = (pathname: string, latestTag: string, virtuals: any) => {
+  if (pathname === '/') {
+    return (
+      <>
+        {`LedFx v${pkg.version}`}
+        {latestTag !== `v${pkg.version}` ? (
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() =>
+              window.open(
+                'https://github.com/YeonV/LedFx-Builds/releases/latest'
+              )
+            }
+            sx={{ ml: 2 }}
+          >
+            New Update
+          </Button>
+        ) : null}
+      </>
+    )
+  }
+  if (pathname.split('/').length === 3 && pathname.split('/')[1] === 'device') {
+    return virtuals[pathname.split('/')[2]]?.config.name
+  }
+  if (pathname === '/User') {
+    return `LedFx Cloud ${
+      localStorage.getItem('username') !== 'YeonV' ? 'Free' : ''
+    } User`
+  }
+  return pathname.split('/').pop()
+}
+
 const TopBar = () => {
   // const classes = useStyles();
   const navigate = useNavigate()
 
   const theme = useTheme()
-  const ios =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.userAgent === 'MacIntel' && navigator.maxTouchPoints > 1)
 
   const open = useStore((state) => state.ui.bars && state.ui.bars?.leftBar.open)
   const latestTag = useStore((state) => state.ui.latestTag)
@@ -78,8 +171,8 @@ const TopBar = () => {
   const history = useNavigate()
   const clearSnackbar = useStore((state) => state.ui.clearSnackbar)
   const features = useStore((state) => state.features)
-  const [anchorEl, setAnchorEl] = useState(null)
   const platform = useStore((state) => state.platform)
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null)
   const invDevice = useStore((state) => state.tours.device)
   const invSettings = useStore((state) => state.tours.settings)
   const invIntegrations = useStore((state) => state.tours.integrations)
@@ -88,6 +181,24 @@ const TopBar = () => {
   const updateNotificationInterval = useStore(
     (state) => state.updateNotificationInterval
   )
+
+  const invisible = () => {
+    switch (pathname.split('/')[1]) {
+      case 'device':
+        return invDevice
+      case 'Scenes':
+        return invScenes
+      case 'Settings':
+        return invSettings
+      case 'Devices':
+        return invDevices
+      case 'Integrations':
+        return invIntegrations
+      default:
+        return true
+    }
+  }
+
   const handleLeftBarOpen = () => {
     setLeftBarOpen(true)
   }
@@ -103,11 +214,11 @@ const TopBar = () => {
     toggleGraphs()
   }
 
-  const handleClick = (event: any) => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget)
   }
 
-  const logout = (e: any) => {
+  const logout = (e: React.MouseEvent<HTMLLIElement>) => {
     e.preventDefault()
     localStorage.removeItem('jwt')
     localStorage.removeItem('username')
@@ -145,9 +256,9 @@ const TopBar = () => {
         'https://api.github.com/repos/YeonV/LedFx-Builds/releases/latest'
       )
       const resp = await res.json()
-      return resp.tag_name
+      return resp.tag_name as string
     }
-    latest().then((r: any) => r !== latestTag && setLatestTag(r))
+    latest().then((r) => r !== latestTag && setLatestTag(r))
   }, [])
 
   useEffect(() => {
@@ -178,263 +289,199 @@ const TopBar = () => {
           LedFx
         </div>
       )}
-      <AppBar
-        enableColorOnDark
-        color="secondary"
-        position="fixed"
-        sx={{
-          background: ios ? 'rgba(54,54,54,0.8)' : '',
-          backdropFilter: ios ? 'blur(20px)' : '',
-          color: ios ? '#fff' : '',
-          paddingTop: isElectron() && platform !== 'darwin' ? '32px' : 0,
-          zIndex: 10,
-          transition: theme.transitions.create(['margin', 'width'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen
-          }),
-          ...(open && {
-            width: `calc(100% - ${drawerWidth}px)`,
-            marginLeft: `${drawerWidth}px`,
+      {!(
+        isElectron() && window.localStorage.getItem('lock') === 'activated'
+      ) && (
+        <AppBar
+          enableColorOnDark
+          color="secondary"
+          position="fixed"
+          sx={{
+            background: ios ? 'rgba(54,54,54,0.8)' : '',
+            backdropFilter: ios ? 'blur(20px)' : '',
+            color: ios ? '#fff' : '',
+            paddingTop: isElectron() && platform !== 'darwin' ? '32px' : 0,
+            zIndex: 10,
             transition: theme.transitions.create(['margin', 'width'], {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen
+            }),
+            ...(open && {
+              width: `calc(100% - ${drawerWidth}px)`,
+              marginLeft: `${drawerWidth}px`,
+              transition: theme.transitions.create(['margin', 'width'], {
+                easing: theme.transitions.easing.easeOut,
+                duration: theme.transitions.duration.enteringScreen
+              })
             })
-          })
-        }}
-      >
-        <Toolbar
-          style={{
-            justifyContent: 'space-between',
-            minHeight: 56
           }}
         >
-          <div style={{ position: 'absolute', top: 0, left: 16 }}>
-            {(pathname.split('/').length === 3 &&
-              pathname.split('/')[1] === 'device') ||
-            pathname === '/Settings' ? (
-              ios ? (
-                <IconButton
-                  size="large"
-                  color="inherit"
-                  onClick={() => history(-1)}
-                >
-                  <ChevronLeft sx={{ fontSize: 32 }} />
-                </IconButton>
-              ) : (
-                <Button
-                  size="large"
-                  variant="text"
-                  color="inherit"
-                  startIcon={<ChevronLeft />}
-                  onClick={() => history(-1)}
-                >
-                  Back
-                </Button>
-              )
-            ) : (
-              !open &&
-              (ios ? (
-                <Box
-                  style={{
-                    backgroundImage: 'url(/icon.png)',
-                    marginTop: 10,
-                    width: 32,
-                    height: 32,
-                    backgroundSize: 'contain'
-                  }}
-                  onClick={handleLeftBarOpen}
-                />
-              ) : (
-                <IconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  onClick={handleLeftBarOpen}
-                  edge="start"
-                  sx={{ marginRight: theme.spacing(2), top: 8 }}
-                  className="step-three"
-                >
-                  <MenuIcon />
-                </IconButton>
-              ))
-            )}
-          </div>
-
-          <Typography variant="h6" noWrap style={{ margin: '0 auto' }}>
-            {pathname === '/' ? (
-              <>
-                {`LedFx v${pkg.version}`}
-                {latestTag !== `v${pkg.version}` ? (
-                  <Button
-                    color="error"
-                    variant="contained"
-                    onClick={() =>
-                      window.open(
-                        'https://github.com/YeonV/LedFx-Builds/releases/latest'
-                      )
-                    }
-                    sx={{ ml: 2 }}
-                  >
-                    New Update
-                  </Button>
-                ) : null}
-              </>
-            ) : pathname.split('/').length === 3 &&
-              pathname.split('/')[1] === 'device' ? (
-              virtuals[pathname.split('/')[2]]?.config.name
-            ) : (
-              pathname.split('/').pop()
-            )}
-          </Typography>
-          <div
+          <Toolbar
             style={{
-              display: 'flex',
-              position: 'absolute',
-              top: 4,
-              right: 16
+              justifyContent: 'space-between',
+              minHeight: 56
             }}
           >
-            {disconnected ? (
-              <Box>
+            <div style={{ position: 'absolute', top: 0, left: 16 }}>
+              {LeftButtons(pathname, history, open, handleLeftBarOpen)}
+            </div>
+            <Typography variant="h6" noWrap style={{ margin: '0 auto' }}>
+              {Title(pathname, latestTag, virtuals)}
+            </Typography>
+            <div
+              style={{
+                display: 'flex',
+                position: 'absolute',
+                top: 4,
+                right: 16
+              }}
+            >
+              {disconnected ? (
+                <Box>
+                  <IconButton
+                    aria-label="display more actions"
+                    edge="end"
+                    color="inherit"
+                    onClick={changeHost}
+                    className="step-two"
+                    style={{ position: 'absolute', right: '4rem' }}
+                  >
+                    <BladeIcon
+                      style={{ position: 'relative' }}
+                      name="mdi:lan-disconnect"
+                    />
+                    <CircularProgress
+                      size={44}
+                      style={{
+                        color: 'rgba(0,0,0,0.6)',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        zIndex: 1
+                      }}
+                    />
+                  </IconButton>
+                </Box>
+              ) : (
+                <GlobalActionBar className="hideHd" />
+              )}
+
+              {!(window.localStorage.getItem('guestmode') === 'activated') && (
                 <IconButton
                   aria-label="display more actions"
                   edge="end"
                   color="inherit"
-                  onClick={changeHost}
+                  onClick={handleClick}
                   className="step-two"
-                  style={{ position: 'absolute', right: '4rem' }}
+                  style={{ marginLeft: '1rem' }}
                 >
-                  <BladeIcon
-                    style={{ position: 'relative' }}
-                    name="mdi:lan-disconnect"
-                  />
-                  <CircularProgress
-                    size={44}
-                    style={{
-                      color: 'rgba(0,0,0,0.6)',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      zIndex: 1
-                    }}
-                  />
+                  <Badge variant="dot" color="error" invisible={invisible()}>
+                    <MoreVert sx={{ fontSize: 32 }} />
+                  </Badge>
                 </IconButton>
-              </Box>
-            ) : (
-              <GlobalActionBar className="hideHd" />
-            )}
+              )}
+            </div>
 
-            <IconButton
-              aria-label="display more actions"
-              edge="end"
-              color="inherit"
-              onClick={handleClick}
-              className="step-two"
-              style={{ marginLeft: '1rem' }}
-            >
-              <Badge
-                variant="dot"
-                color="error"
-                invisible={
-                  pathname.split('/')[1] === 'device'
-                    ? invDevice
-                    : pathname.split('/')[1] === 'Scenes'
-                    ? invScenes
-                    : pathname.split('/')[1] === 'Settings'
-                    ? invSettings
-                    : pathname.split('/')[1] === 'Devices'
-                    ? invDevices
-                    : pathname.split('/')[1] === 'Integrations'
-                    ? invIntegrations
-                    : true
-                }
+            {!(window.localStorage.getItem('guestmode') === 'activated') && (
+              <Menu
+                id="simple-menu"
+                anchorEl={anchorEl}
+                keepMounted
+                open={Boolean(anchorEl)}
+                onClose={() => setAnchorEl(null)}
+                // className={classes.bladeMenu}
               >
-                <MoreVert sx={{ fontSize: 32 }} />
-              </Badge>
-            </IconButton>
-          </div>
-
-          <Menu
-            id="simple-menu"
-            anchorEl={anchorEl}
-            keepMounted
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-            // className={classes.bladeMenu}
-          >
-            {features.cloud && isLogged && (
-              <MenuItem
-                divider
-                onClick={() => {
-                  setAnchorEl(null)
-                  navigate('/User')
-                }}
-              >
-                <ListItemIcon style={{ marginTop: -13 }}>
-                  <StyledBadge
-                    badgeContent={
-                      localStorage.getItem('ledfx-cloud-role') ===
-                      'authenticated'
-                        ? 'logged in'
-                        : localStorage.getItem('ledfx-cloud-role')
-                    }
-                    color="primary"
+                {features.cloud && isLogged && (
+                  <MenuItem
+                    divider
+                    onClick={() => {
+                      setAnchorEl(null)
+                      navigate('/User')
+                    }}
                   >
-                    <GitHub />
-                  </StyledBadge>
-                </ListItemIcon>
-                <div>
-                  <div>{localStorage.getItem('username')}</div>
-                </div>
-              </MenuItem>
-            )}
-            <MenuItem onClick={changeHost}>
-              <ListItemIcon>
-                <Language />
-              </ListItemIcon>
-              Change Host
-            </MenuItem>
-            {/* <MenuItem onClick={toggleDarkMode}>
+                    <ListItemIcon style={{ marginTop: -13 }}>
+                      <StyledBadge
+                        badgeContent={
+                          localStorage.getItem('ledfx-cloud-role') ===
+                          'authenticated'
+                            ? 'logged in'
+                            : localStorage.getItem('ledfx-cloud-role')
+                        }
+                        color="primary"
+                      >
+                        <GitHub />
+                      </StyledBadge>
+                    </ListItemIcon>
+                    <div>
+                      <div>{localStorage.getItem('username')}</div>
+                    </div>
+                  </MenuItem>
+                )}
+                <MenuItem onClick={changeHost}>
+                  <ListItemIcon>
+                    <Language />
+                  </ListItemIcon>
+                  Change Host
+                </MenuItem>
+                {/* <MenuItem onClick={toggleDarkMode}>
               <ListItemIcon>
                 <Language />
               </ListItemIcon>
               Darkmode
             </MenuItem> */}
-            <MenuItem onClick={changeGraphs}>
-              <ListItemIcon>
-                <BarChart color={graphs ? 'inherit' : 'secondary'} />
-              </ListItemIcon>
-              {!graphs ? 'Enable Graphs' : 'Disable Graphs'}
-            </MenuItem>
-            {pathname.split('/')[1] === 'device' ? (
-              <TourDevice cally={() => setAnchorEl(null)} />
-            ) : pathname.split('/')[1] === 'Scenes' ? (
-              <TourScenes cally={() => setAnchorEl(null)} />
-            ) : pathname.split('/')[1] === 'Settings' ? (
-              <TourSettings cally={() => setAnchorEl(null)} />
-            ) : pathname.split('/')[1] === 'Devices' ? (
-              <TourDevices cally={() => setAnchorEl(null)} />
-            ) : pathname.split('/')[1] === 'Integrations' ? (
-              <TourIntegrations cally={() => setAnchorEl(null)} />
-            ) : null}
-            {/* <Doc type={'menuItem'} label={'Docs'} onClick={() => setAnchorEl(null)} /> */}
+                <MenuItem onClick={changeGraphs}>
+                  <ListItemIcon>
+                    <BarChart color={graphs ? 'inherit' : 'secondary'} />
+                  </ListItemIcon>
+                  {!graphs ? 'Enable Graphs' : 'Disable Graphs'}
+                </MenuItem>
+                {pathname.split('/')[1] === 'device' ? (
+                  <TourDevice cally={() => setAnchorEl(null)} />
+                ) : pathname.split('/')[1] === 'Scenes' ? (
+                  <TourScenes cally={() => setAnchorEl(null)} />
+                ) : pathname.split('/')[1] === 'Settings' ? (
+                  <TourSettings cally={() => setAnchorEl(null)} />
+                ) : pathname.split('/')[1] === 'Devices' ? (
+                  <TourDevices cally={() => setAnchorEl(null)} />
+                ) : pathname.split('/')[1] === 'Integrations' ? (
+                  <TourIntegrations cally={() => setAnchorEl(null)} />
+                ) : (
+                  <TourHome
+                    variant="menuitem"
+                    cally={() => setAnchorEl(null)}
+                  />
+                )}
+                {/* <Doc type={'menuItem'} label={'Docs'} onClick={() => setAnchorEl(null)} /> */}
 
-            {features.cloud && (
-              <MenuItem
-                onClick={(e) => {
-                  if (isLogged) {
-                    logout(e)
-                  } else {
-                    window.location.href = `https://strapi.yeonv.com/connect/github?callback=${window.location.origin}`
-                  }
-                }}
-              >
-                <ListItemIcon>{isLogged ? <Logout /> : <Login />}</ListItemIcon>
-                {isLogged ? 'Logout' : 'Login with Github'}
-              </MenuItem>
+                {features.cloud && (
+                  <MenuItem
+                    onClick={(e) => {
+                      if (isLogged) {
+                        logout(e)
+                      } else if (
+                        window.location.pathname.includes('hassio_ingress')
+                      ) {
+                        window.location.href = `https://strapi.yeonv.com/connect/github?callback=${window.location.origin}`
+                      } else {
+                        window.open(
+                          `https://strapi.yeonv.com/connect/github?callback=${window.location.origin}`,
+                          '_blank',
+                          'noopener,noreferrer'
+                        )
+                      }
+                    }}
+                  >
+                    <ListItemIcon>
+                      {isLogged ? <Logout /> : <Login />}
+                    </ListItemIcon>
+                    {isLogged ? 'Logout' : 'Login with Github'}
+                  </MenuItem>
+                )}
+              </Menu>
             )}
-          </Menu>
-        </Toolbar>
-      </AppBar>
+          </Toolbar>
+        </AppBar>
+      )}
     </>
   )
 }

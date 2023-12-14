@@ -12,7 +12,7 @@ const storeDialogs = (set: any) => ({
       open: false,
       edit: false,
       sceneKey: '',
-      editData: ''
+      editData: '' as string | Record<string, any>
     },
     addDevice: {
       open: false,
@@ -29,6 +29,9 @@ const storeDialogs = (set: any) => ({
     addIntegration: {
       open: false,
       edit: {} as any
+    },
+    addWled: {
+      open: [] as { name: string; ip_address: string }[]
     }
   },
   assistant: {
@@ -48,6 +51,16 @@ const storeDialogs = (set: any) => ({
       false,
       'api/dialog/nohost'
     ),
+  setAddWLed: (open: { name: string; ip_address: string }[]) =>
+    set(
+      produce((state: IStore) => {
+        state.dialogs.addWled = {
+          open
+        }
+      }),
+      false,
+      'api/dialog/nohost'
+    ),
   setDialogOpen: (open: boolean, edit?: boolean) =>
     set(
       produce((state: IStore) => {
@@ -63,7 +76,7 @@ const storeDialogs = (set: any) => ({
     open: boolean,
     edit?: boolean,
     sceneKey?: string,
-    editData?: string
+    editData?: string | Record<string, any>
   ) =>
     set(
       produce((state: IStore) => {
