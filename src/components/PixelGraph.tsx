@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-bitwise */
 /* eslint-disable prettier/prettier */
 /* eslint-disable react/require-default-props */
@@ -25,19 +27,25 @@ const PixelGraph = ({
   const devices = useStore((state) => state.devices);
   const graphs = useStore((state) => state.graphs);
   const rows = virtuals[virtId].is_device ? devices[virtuals[virtId].is_device]?.config?.rows || virtuals[virtId].config.rows || 1 : virtuals[virtId].config.rows || 1;
+  const config = useStore((state) => state.config)
 
   function hexColor(encodedString: string) {
-    const binaryString = atob(encodedString.padEnd(4, '='))
-    let pixelColor = 0
-    for (let i = 0; i < binaryString.length; i += 1) {
-      // eslint-disable-next-line no-bitwise
-      pixelColor |= (binaryString.charCodeAt(i) << (8 * i))
+    if (config.transmission_mode === 'uncompressed' || !encodedString) {
+      return []
     }
-    const r = (pixelColor >> 16) & 0xFF
-    const g = (pixelColor >> 8) & 0xFF
-    const b = pixelColor & 0xFF
-    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
+    const decodedString = atob(encodedString)
+    const charCodes = Array.from(decodedString).map(char => char.charCodeAt(0))    
+    const colors = []
+    for (let i = 0; i < charCodes.length; i += 3) {
+      const r = charCodes[i]
+      const g = charCodes[i + 1]
+      const b = charCodes[i + 2]
+      colors.push({r, g, b})
+    }    
+    return colors
   }
+
+  const decodedPixels = config.transmission_mode === 'compressed' ? pixels && pixels.length && hexColor(pixels) : pixels
   
   useEffect(() => {
     const handleWebsockets = (e: any) => {
@@ -81,9 +89,9 @@ const PixelGraph = ({
     style={{
       maxWidth: '520px',
       display: 'flex',
-      flexDirection: 'column-reverse',
+      flexDirection: 'column',
       width: '100%',
-      borderRadius: '10px 10px 0 0',
+      borderRadius: '10px',
       overflow: 'hidden',
       margin: '0.5rem 0 0 0',
     }}
@@ -101,23 +109,28 @@ const PixelGraph = ({
         }}
         className={`${className}  ${active ? 'active' : ''}`}
       >
-        {pixels && pixels.length > 0 && pixels.slice(row * pixels.length / rows, (row + 1) * pixels.length / rows).map((_p: any, i: number) => (
-          <div
-            key={i}
-            style={{
-              height: '38px',
-              flex: 1,
-              border: '1px solid black',
-              margin: '2px',
-              borderRadius: '5px',
-              backgroundColor: active
-                ? hexColor(pixels[row * pixels.length / rows + i])
-                : '#0002',
-            }}
-          />
-        ))}
+        { (config.transmission_mode === 'compressed'
+          ? decodedPixels.slice(row * decodedPixels.length / rows, (row + 1) * decodedPixels.length / rows)
+          : pixels[0].slice(row * pixels[0].length / rows, (row + 1) * pixels[0].length / rows))
+          .map((_p: any, i: number) => (
+            <div
+              key={i}
+              style={{
+                height: ((config.transmission_mode === 'compressed' ? decodedPixels.length : pixels[0].length ) > 100) && rows > 9 
+                  ? `min(min(${520 / ((config.transmission_mode === 'compressed' ? decodedPixels.length : pixels[0].length ) / rows)}px, ${520 /rows}px), 38px)`
+                  : '38px',
+                flex: 1,
+                border: '1px solid black',
+                margin: `${((config.transmission_mode === 'compressed' ? decodedPixels.length : pixels[0].length ) > 100) && rows > 9 ? 1 : 2}px`,
+                borderRadius: ((config.transmission_mode === 'compressed' ? decodedPixels.length : pixels[0].length ) > 100) && rows > 9 ? '50%' : '5px',
+                backgroundColor: active
+                  ? config.transmission_mode === 'compressed'  ? `rgb(${Object.values(decodedPixels[row * decodedPixels.length / rows + i])})` : `rgb(${pixels[0][row * pixels[0].length / rows + i]},${pixels[1][row * pixels[0].length / rows + i]},${pixels[2][row * pixels[0].length / rows + i]})`
+                  : '#0002',
+              }}
+            />
+          ))}
       </div>
-    ))}</div> : pixels && pixels.length ? (
+    ))}</div> : (pixels[0] || decodedPixels).length ? (
     <div
       style={{
         maxWidth: '520px',
@@ -129,7 +142,10 @@ const PixelGraph = ({
       }}
       className={`${className}  ${active ? 'active' : ''}`}
     >
-      {pixels && pixels.length > 0 && pixels.map((_p: any, i: number) => (
+      {(config.transmission_mode === 'compressed'
+        ? decodedPixels
+        : pixels[0]
+      ).map((p: any, i: number) => (
         <div
           key={i}
           style={{
@@ -137,7 +153,7 @@ const PixelGraph = ({
             flex: 1,
             borderRadius: '0',
             backgroundColor: active
-              ? hexColor(pixels[i])
+              ? config.transmission_mode === 'compressed'  ? `rgb(${Object.values(p)})` : `rgb(${pixels[0][i]},${pixels[1][i]},${pixels[2][i]})`
               : '#0002',
           }}
         />

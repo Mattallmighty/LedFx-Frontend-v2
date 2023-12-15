@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Input, Divider } from '@mui/material'
+import { Input, Divider, Select, MenuItem } from '@mui/material'
 import { SettingsSlider, SettingsRow } from './SettingsComponents'
 import useStore from '../../store/useStore'
 import useSliderStyles from '../../components/SchemaForm/components/Number/BladeSlider.styles'
@@ -43,8 +43,32 @@ const UICard = () => {
     getSystemConfig()
   }, [])
 
+  const schemaTransmissionMode = useStore(
+    (state) => state?.schemas?.core?.schema.properties.transmission_mode
+  )
+
   return (
     <>
+      <SettingsRow title={schemaTransmissionMode.title} step="zero" value={fps}>
+        <Select
+          disableUnderline
+          variant="standard"
+          defaultValue={
+            config.transmission_mode ||
+            schemaTransmissionMode.default ||
+            'uncompressed'
+          }
+          onChange={(e) =>
+            setSystemSetting('transmission_mode', e.target.value)
+          }
+        >
+          {schemaTransmissionMode.enum.map((item: any) => (
+            <MenuItem key={item} value={item}>
+              {item}
+            </MenuItem>
+          ))}
+        </Select>
+      </SettingsRow>
       <SettingsRow title="Frontend FPS" step="two" value={fps}>
         <SettingsSlider
           value={fps}
