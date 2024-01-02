@@ -29,10 +29,14 @@ import SpotifyLoginRedirect from './Integrations/Spotify/SpotifyLoginRedirect'
 import { drawerWidth, ios } from '../utils/helpers'
 import User from './User/User'
 import Lock from './Lock'
+import Mp from '../components/Integrations/Spotify/Widgets/Mp/Mp'
+import FrontendPixelsTooSmall from '../components/Dialogs/FrontendPixelsTooSmall'
 
 const Routings = ({ handleWs }: any) => {
   const theme = useTheme()
   const isElect = isElectron()
+  const mp = useStore((state) => state.ui.mp)
+  const setMp = useStore((state) => state.ui.setMp)
   const smartBarOpen = useStore(
     (state) => state.ui.bars && state.ui.bars.smartBar.open
   )
@@ -44,6 +48,7 @@ const Routings = ({ handleWs }: any) => {
   )
 
   useHotkeys(['ctrl+alt+y', 'ctrl+alt+z'], () => setSmartBarOpen(!smartBarOpen))
+  useHotkeys(['ctrl+alt+d'], () => setMp(!mp))
   useHotkeys(['ctrl+alt+g'], () => {
     if (window.localStorage.getItem('guestmode') === 'activated') {
       window.localStorage.removeItem('guestmode')
@@ -124,7 +129,9 @@ const Routings = ({ handleWs }: any) => {
             </>
           )}
         </Routes>
+        {mp && <Mp />}
         <NoHostDialog />
+        <FrontendPixelsTooSmall />
         <SmartBar
           open={smartBarOpen}
           setOpen={setSmartBarOpen}
