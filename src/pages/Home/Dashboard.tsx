@@ -358,8 +358,8 @@ const Dashboard = () => {
           </Stack>
         </Stack>
       </Stack>
-      {config.dev_mode && <MGraph />}
       {config.dev_mode && <Visualiser />}
+      {config.dev_mode && <MGraph />}
     </div>
   )
 }
