@@ -15,6 +15,35 @@ const Visualiser = () => {
     VisualizerType.Bars
   )
 
+  const renderFrequencyBars = () => {
+    // Your existing code for rendering frequency bars
+  }
+
+  const renderWaveform = () => {
+    // Your existing code for rendering waveform
+  }
+
+  const renderRotatingCube = () => {
+    // Your existing code for rendering rotating cube
+  }
+
+  const renderVisualizer = () => {
+    switch (currentVisualizer) {
+      case VisualizerType.Bars:
+        renderFrequencyBars()
+        break
+      case VisualizerType.Waveform:
+        renderWaveform()
+        break
+      case VisualizerType.RotatingCube:
+        renderRotatingCube()
+        break
+      // Add more cases for additional visualizer types
+      default:
+        console.error('Unknown visualizer type:', currentVisualizer)
+    }
+  }
+
   useEffect(() => {
     let audioContext: AudioContext
     let analyser: AnalyserNode | undefined
@@ -25,14 +54,12 @@ const Visualiser = () => {
     let bars: THREE.Mesh[] = []
 
     const ensureAudioContext = () => {
-      console.log('Audio Context State:', audioContext.state)
       if (audioContext.state === 'suspended') {
         audioContext.resume()
       }
     }
 
     const animateVisualizer = () => {
-      console.log('Animating visualizer...', dataArray)
       const canvas = canvasRef.current
       const canvasContext = canvas?.getContext('2d')
       if (!renderer) {
@@ -44,10 +71,10 @@ const Visualiser = () => {
 
       const { width, height } = canvas
       const barWidth = width / (analyser?.frequencyBinCount || 1)
+      renderVisualizer()
 
       ensureAudioContext()
       analyser?.getByteFrequencyData(dataArray)
-      console.log('Frequency data:', dataArray)
 
       // Clear the canvas
       canvasContext.clearRect(0, 0, width, height)
@@ -124,12 +151,10 @@ const Visualiser = () => {
     }
 
     const initAudio = async () => {
-      console.log('Initializing Audio...')
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true
         })
-        console.log('Audio stream obtained:', stream)
         audioContext = new AudioContext()
         const source = audioContext.createMediaStreamSource(stream)
         analyser = audioContext.createAnalyser()
@@ -142,7 +167,6 @@ const Visualiser = () => {
         initThreeJs()
         animateVisualizer()
         animateThreeJsVisualizer()
-        console.log('Audio initialized successfully.')
       } catch (error) {
         console.error('Error accessing microphone:', error)
       }
@@ -193,6 +217,7 @@ const Visualiser = () => {
       <Button onClick={() => setCurrentVisualizer(VisualizerType.RotatingCube)}>
         Rotating Cube (Test)
       </Button>
+      {/* Add buttons for other visualizer types */}
       <Button onClick={toggleFullScreen}>Toggle Full Screen</Button>
       <div>
         <canvas ref={canvasRef} style={{ background: 'black' }} />
