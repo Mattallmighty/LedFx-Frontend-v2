@@ -20,57 +20,74 @@ const Visualiser = () => {
     let analyser: AnalyserNode | undefined
     let dataArray: Uint8Array
     let scene: THREE.Scene | undefined
-    let camera: THREE.Camera | undefined
+    let camera: THREE.PerspectiveCamera | undefined
     let renderer: THREE.WebGLRenderer | undefined
     let bars: THREE.Mesh[] = []
-    let cube: THREE.Mesh | undefined
 
     const ensureAudioContext = () => {
+      console.log('Audio Context State:', audioContext.state)
       if (audioContext.state === 'suspended') {
         audioContext.resume()
       }
     }
 
     const animateVisualizer = () => {
+      console.log('Animating visualizer...', dataArray)
       const canvas = canvasRef.current
-      const context = canvas?.getContext('2d')
-      if (!context || !canvas) return
+      const canvasContext = canvas?.getContext('2d')
+      if (!renderer) {
+        console.error('Renderer is not initialized.')
+        return
+      }
+      renderer.setSize(canvasRef.current!.width, canvasRef.current!.height)
+      if (!canvasContext || !canvas) return
 
       const { width, height } = canvas
-      const barWidth = width / (analyser?.frequencyBinCount || 1) // Ensure non-zero divisor
-      const barHeightMultiplier = height / 255
+      const barWidth = width / (analyser?.frequencyBinCount || 1)
 
       ensureAudioContext()
       analyser?.getByteFrequencyData(dataArray)
-      context.clearRect(0, 0, width, height)
+      console.log('Frequency data:', dataArray)
 
-      dataArray.forEach((data, index) => {
-        const x = index * barWidth
-        const barHeight = data * barHeightMultiplier
-        context.fillStyle = `rgb(${data}, 0, 0)`
-        context.fillRect(x, height - barHeight, barWidth, barHeight)
-      })
+      // Clear the canvas
+      canvasContext.clearRect(0, 0, width, height)
 
-      // Update Three.js scene based on the selected visualizer
-      if (currentVisualizer === VisualizerType.Bars) {
-        bars = bars.map((bar, index) => {
-          const scale = dataArray[index] / 255
-          const newBar = new THREE.Mesh(bar.geometry, bar.material)
-          newBar.position.copy(bar.position)
-          newBar.scale.set(bar.scale.x, scale, bar.scale.z)
-          return newBar
-        }) as THREE.Mesh[]
-      } else if (currentVisualizer === VisualizerType.RotatingCube && cube) {
-        const animateCube = () => {
-          cube.rotation.x += 0.01
-          cube.rotation.y += 0.01
-        }
-
-        animateCube()
-        renderer?.render(scene!, camera!)
+      // Draw simple bars based on frequency data
+      for (let i = 0; i < dataArray.length; i += 1) {
+        const scale = dataArray[i] / 255
+        const barHeight = scale * height
+        canvasContext.fillStyle = `rgb(${dataArray[i]}, 0, 0)`
+        canvasContext.fillRect(
+          i * barWidth,
+          height - barHeight,
+          barWidth,
+          barHeight
+        )
       }
 
       requestAnimationFrame(animateVisualizer)
+    }
+
+    const animateThreeJsVisualizer = () => {
+      if (bars.length === 0 || !analyser || !scene || !camera || !renderer) {
+        console.error(
+          'Bars, Analyser, Scene, Camera, or Renderer not initialized.'
+        )
+        return
+      }
+
+      analyser.getByteFrequencyData(dataArray)
+
+      const analyserFrequencyBinCount = analyser.frequencyBinCount
+
+      for (let i = 0; i < analyserFrequencyBinCount; i += 1) {
+        const scale = dataArray[i] / 255
+        const barHeight = scale * 10 // Adjust the height scale as needed
+        bars[i].scale.y = barHeight
+      }
+
+      renderer.render(scene, camera)
+      requestAnimationFrame(animateThreeJsVisualizer)
     }
 
     const initThreeJs = () => {
@@ -84,71 +101,74 @@ const Visualiser = () => {
       renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current! })
       renderer.setSize(window.innerWidth, window.innerHeight)
 
-      if (currentVisualizer === VisualizerType.RotatingCube) {
-        // Create a rotating cube
-        const cubeGeometry = new THREE.BoxGeometry()
-        const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-        cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
-        scene!.add(cube)
-
-        // Set the initial position to the center of the scene
-        cube.position.set(0, 0, 0)
-
-        // Set up a basic animation for the cube
-        const animateCube = () => {
-          cube.rotation.x += 0.01
-          cube.rotation.y += 0.01
-        }
-
-        // Start the cube animation
-        const animate = () => {
-          animateCube()
-          renderer!.render(scene!, camera!)
-          requestAnimationFrame(animate)
-        }
-
-        animate()
-      } else {
-        // Create bars or other visualizers as needed
-        const barGeometry = new THREE.BoxGeometry(1, 1, 1)
-        const barMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
-        bars = []
-
-        const analyserFrequencyBinCount = analyser?.frequencyBinCount ?? 1
-
-        for (let i = 0; i < analyserFrequencyBinCount; i += 1) {
-          const bar = new THREE.Mesh(barGeometry, barMaterial)
-          bar.position.x = i - analyserFrequencyBinCount / 2
-          scene!.add(bar)
-          bars.push(bar)
-        }
+      if (!analyser) {
+        console.error('Analyser is not initialized.')
+        return
       }
 
-      camera!.position.z = 5
+      const barGeometry = new THREE.BoxGeometry(1, 1, 1)
+      const barMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+
+      bars = []
+
+      const analyserFrequencyBinCount = analyser?.frequencyBinCount || 1
+
+      for (let i = 0; i < analyserFrequencyBinCount; i += 1) {
+        const bar = new THREE.Mesh(barGeometry, barMaterial)
+        bar.position.x = (i / analyserFrequencyBinCount) * 10 - 5
+        scene.add(bar)
+        bars.push(bar)
+      }
+
+      camera.position.z = 5
     }
 
     const initAudio = async () => {
+      console.log('Initializing Audio...')
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true
         })
+        console.log('Audio stream obtained:', stream)
         audioContext = new AudioContext()
         const source = audioContext.createMediaStreamSource(stream)
         analyser = audioContext.createAnalyser()
         analyser.fftSize = 2048
         dataArray = new Uint8Array(analyser.frequencyBinCount)
+        // Add this line after getting frequency data
+        // dataArray.fill(255) // Fill dataArray with non-zero values for testing
         source.connect(analyser)
 
         initThreeJs()
         animateVisualizer()
+        animateThreeJsVisualizer()
+        console.log('Audio initialized successfully.')
       } catch (error) {
         console.error('Error accessing microphone:', error)
       }
     }
 
+    const resizeHandler = () => {
+      if (renderer && camera) {
+        // Add null check for camera
+        const canvas = canvasRef.current!
+        renderer.setSize(canvas.width, canvas.height)
+        if (camera) {
+          // Add null check for camera
+          camera.aspect = canvas.width / canvas.height
+          camera.updateProjectionMatrix()
+        }
+      }
+    }
+
+    // Initialize audio when the component mounts
     initAudio()
 
+    window.addEventListener('resize', resizeHandler)
+
     return () => {
+      window.removeEventListener('resize', resizeHandler)
+      // Clean up audio context when the component unmounts
       if (audioContext) audioContext.close()
     }
   }, [currentVisualizer])
@@ -175,12 +195,7 @@ const Visualiser = () => {
       </Button>
       <Button onClick={toggleFullScreen}>Toggle Full Screen</Button>
       <div>
-        <canvas
-          ref={canvasRef}
-          width={1020}
-          height={500}
-          style={{ background: 'black' }}
-        />
+        <canvas ref={canvasRef} style={{ background: 'black' }} />
       </div>
     </div>
   )
