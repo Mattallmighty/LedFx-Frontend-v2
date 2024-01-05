@@ -7,8 +7,8 @@ const Visualiser = () => {
 
   const VisualizerType = {
     Bars: 'Bars',
-    Waveform: 'Waveform'
-    // Add more visualizer types as needed
+    Waveform: 'Waveform',
+    RotatingCube: 'RotatingCube'
   }
 
   const [currentVisualizer, setCurrentVisualizer] = useState(
@@ -19,10 +19,11 @@ const Visualiser = () => {
     let audioContext: AudioContext
     let analyser: AnalyserNode | undefined
     let dataArray: Uint8Array
-    let scene: THREE.Scene
-    let camera: THREE.Camera
-    let renderer: THREE.WebGLRenderer
+    let scene: THREE.Scene | undefined
+    let camera: THREE.Camera | undefined
+    let renderer: THREE.WebGLRenderer | undefined
     let bars: THREE.Mesh[] = []
+    let cube: THREE.Mesh | undefined
 
     const ensureAudioContext = () => {
       if (audioContext.state === 'suspended') {
@@ -59,6 +60,14 @@ const Visualiser = () => {
           newBar.scale.set(bar.scale.x, scale, bar.scale.z)
           return newBar
         }) as THREE.Mesh[]
+      } else if (currentVisualizer === VisualizerType.RotatingCube && cube) {
+        const animateCube = () => {
+          cube.rotation.x += 0.01
+          cube.rotation.y += 0.01
+        }
+
+        animateCube()
+        renderer?.render(scene!, camera!)
       }
 
       requestAnimationFrame(animateVisualizer)
@@ -75,24 +84,47 @@ const Visualiser = () => {
       renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current! })
       renderer.setSize(window.innerWidth, window.innerHeight)
 
-      if (!analyser) {
-        console.error('Analyser is not initialized.')
-        return
+      if (currentVisualizer === VisualizerType.RotatingCube) {
+        // Create a rotating cube
+        const cubeGeometry = new THREE.BoxGeometry()
+        const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+        cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
+        scene!.add(cube)
+
+        // Set the initial position to the center of the scene
+        cube.position.set(0, 0, 0)
+
+        // Set up a basic animation for the cube
+        const animateCube = () => {
+          cube.rotation.x += 0.01
+          cube.rotation.y += 0.01
+        }
+
+        // Start the cube animation
+        const animate = () => {
+          animateCube()
+          renderer!.render(scene!, camera!)
+          requestAnimationFrame(animate)
+        }
+
+        animate()
+      } else {
+        // Create bars or other visualizers as needed
+        const barGeometry = new THREE.BoxGeometry(1, 1, 1)
+        const barMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+        bars = []
+
+        const analyserFrequencyBinCount = analyser?.frequencyBinCount ?? 1
+
+        for (let i = 0; i < analyserFrequencyBinCount; i += 1) {
+          const bar = new THREE.Mesh(barGeometry, barMaterial)
+          bar.position.x = i - analyserFrequencyBinCount / 2
+          scene!.add(bar)
+          bars.push(bar)
+        }
       }
 
-      const barGeometry = new THREE.BoxGeometry(1, 1, 1)
-      const barMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
-      bars = []
-
-      // eslint-disable-next-line no-plusplus
-      for (let i = 0; i < analyser.frequencyBinCount; i++) {
-        const bar = new THREE.Mesh(barGeometry, barMaterial)
-        bar.position.x = i - analyser.frequencyBinCount / 2
-        scene.add(bar)
-        bars.push(bar)
-      }
-
-      camera.position.z = 5
+      camera!.position.z = 5
     }
 
     const initAudio = async () => {
@@ -106,13 +138,14 @@ const Visualiser = () => {
         analyser.fftSize = 2048
         dataArray = new Uint8Array(analyser.frequencyBinCount)
         source.connect(analyser)
+
+        initThreeJs()
         animateVisualizer()
       } catch (error) {
         console.error('Error accessing microphone:', error)
       }
     }
 
-    initThreeJs()
     initAudio()
 
     return () => {
@@ -134,7 +167,12 @@ const Visualiser = () => {
       <Button onClick={() => setCurrentVisualizer(VisualizerType.Bars)}>
         Frequency Bars
       </Button>
-      {/* Frequency Bars, Waveform, Oscilloscope, Circle Visualisation, Particle Visualisation, Light Sync Text, Light Sync Space */}
+      <Button onClick={() => setCurrentVisualizer(VisualizerType.Waveform)}>
+        Waveform
+      </Button>
+      <Button onClick={() => setCurrentVisualizer(VisualizerType.RotatingCube)}>
+        Rotating Cube (Test)
+      </Button>
       <Button onClick={toggleFullScreen}>Toggle Full Screen</Button>
       <div>
         <canvas
