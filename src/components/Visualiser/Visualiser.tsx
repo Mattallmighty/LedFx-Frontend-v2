@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Button } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -5,42 +6,50 @@ import * as THREE from 'three'
 const Visualiser = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
-  const VisualizerType = {
+  const VisualiserType = {
     Bars: 'Bars',
     Waveform: 'Waveform',
+    Ferrofluid: 'Ferrofluid',
     RotatingCube: 'RotatingCube'
   }
 
-  const [currentVisualizer, setCurrentVisualizer] = useState(
-    VisualizerType.Bars
+  const [currentVisualiser, setCurrentVisualiser] = useState(
+    VisualiserType.Bars
   )
 
   const renderFrequencyBars = () => {
-    // Your existing code for rendering frequency bars
+    // To do: Create this code for rendering 3D frequency bars
   }
 
   const renderWaveform = () => {
-    // Your existing code for rendering waveform
+    // To do: Create this code for rendering waveform
+  }
+
+  const renderFerrofluid = () => {
+    // To do: Create this code for rendering Ferrofluid
   }
 
   const renderRotatingCube = () => {
-    // Your existing code for rendering rotating cube
+    // To do: Create this code for rendering rotating cube
   }
 
-  const renderVisualizer = () => {
-    switch (currentVisualizer) {
-      case VisualizerType.Bars:
+  const renderVisualiser = () => {
+    switch (currentVisualiser) {
+      case VisualiserType.Bars:
         renderFrequencyBars()
         break
-      case VisualizerType.Waveform:
+      case VisualiserType.Waveform:
         renderWaveform()
         break
-      case VisualizerType.RotatingCube:
+      case VisualiserType.Ferrofluid:
+        renderFerrofluid()
+        break
+      case VisualiserType.RotatingCube:
         renderRotatingCube()
         break
-      // Add more cases for additional visualizer types
+      // Add more cases for additional Visualiser types
       default:
-        console.error('Unknown visualizer type:', currentVisualizer)
+        console.error('Unknown Visualiser type:', currentVisualiser)
     }
   }
 
@@ -59,7 +68,7 @@ const Visualiser = () => {
       }
     }
 
-    const animateVisualizer = () => {
+    const animateVisualiser = () => {
       const canvas = canvasRef.current
       const canvasContext = canvas?.getContext('2d')
       if (!renderer) {
@@ -71,7 +80,7 @@ const Visualiser = () => {
 
       const { width, height } = canvas
       const barWidth = width / (analyser?.frequencyBinCount || 1)
-      renderVisualizer()
+      renderVisualiser()
 
       ensureAudioContext()
       analyser?.getByteFrequencyData(dataArray)
@@ -92,10 +101,10 @@ const Visualiser = () => {
         )
       }
 
-      requestAnimationFrame(animateVisualizer)
+      requestAnimationFrame(animateVisualiser)
     }
 
-    const animateThreeJsVisualizer = () => {
+    const animateThreeJsVisualiser = () => {
       if (bars.length === 0 || !analyser || !scene || !camera || !renderer) {
         console.error(
           'Bars, Analyser, Scene, Camera, or Renderer not initialized.'
@@ -114,7 +123,7 @@ const Visualiser = () => {
       }
 
       renderer.render(scene, camera)
-      requestAnimationFrame(animateThreeJsVisualizer)
+      requestAnimationFrame(animateThreeJsVisualiser)
     }
 
     const initThreeJs = () => {
@@ -165,8 +174,8 @@ const Visualiser = () => {
         source.connect(analyser)
 
         initThreeJs()
-        animateVisualizer()
-        animateThreeJsVisualizer()
+        animateVisualiser()
+        animateThreeJsVisualiser()
       } catch (error) {
         console.error('Error accessing microphone:', error)
       }
@@ -195,7 +204,7 @@ const Visualiser = () => {
       // Clean up audio context when the component unmounts
       if (audioContext) audioContext.close()
     }
-  }, [currentVisualizer])
+  }, [currentVisualiser])
 
   const toggleFullScreen = () => {
     const canvas = canvasRef.current
@@ -208,16 +217,19 @@ const Visualiser = () => {
 
   return (
     <div>
-      <Button onClick={() => setCurrentVisualizer(VisualizerType.Bars)}>
+      <Button onClick={() => setCurrentVisualiser(VisualiserType.Bars)}>
         Frequency Bars
       </Button>
-      <Button onClick={() => setCurrentVisualizer(VisualizerType.Waveform)}>
+      <Button onClick={() => setCurrentVisualiser(VisualiserType.Waveform)}>
         Waveform
       </Button>
-      <Button onClick={() => setCurrentVisualizer(VisualizerType.RotatingCube)}>
+      <Button onClick={() => setCurrentVisualiser(VisualiserType.Ferrofluid)}>
+        Ferrofluid
+      </Button>
+      <Button onClick={() => setCurrentVisualiser(VisualiserType.RotatingCube)}>
         Rotating Cube (Test)
       </Button>
-      {/* Add buttons for other visualizer types */}
+      {/* Add buttons for other Visualiser types */}
       <Button onClick={toggleFullScreen}>Toggle Full Screen</Button>
       <div>
         <canvas ref={canvasRef} style={{ background: 'black' }} />
