@@ -37,12 +37,14 @@ const useStyles = makeStyles(() => ({
     paddingLeft: '2rem'
   },
   FormToggleWrapper: {
+    padding: '5px 0',
     '@media (max-width: 580px)': {
       order: -1
     }
   },
 
   FormToggle: {
+    fontSize: '0.64rem',
     '@media (max-width: 580px)': {
       flexGrow: 1
     }
