@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, no-restricted-syntax */
 import { Button } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -17,9 +17,48 @@ const Visualiser = () => {
     VisualiserType.Bars
   )
 
-  const renderFrequencyBars = () => {
-    // To do: Create this code for rendering 3D frequency bars
+  let audioContext: AudioContext
+  let analyser: AnalyserNode | undefined
+  let dataArray: Uint8Array
+  let sceneInstance: THREE.Scene | undefined
+  let cameraInstance: THREE.PerspectiveCamera | undefined
+  let rendererInstance: THREE.WebGLRenderer | undefined
+  const bars: THREE.Mesh[] = []
+
+  const renderFrequencyBars = (
+  scene: THREE.Scene,
+  camera: THREE.PerspectiveCamera,
+  renderer: THREE.WebGLRenderer,
+  analyser: AnalyserNode | undefined,
+  existingBars: THREE.Mesh[]
+): THREE.Mesh[] => {
+  if (!scene || !camera || !renderer) {
+    console.error('Scene, Camera, or Renderer not initialized.')
+    return []
   }
+
+    const analyserFrequencyBinCount = analyser?.frequencyBinCount || 1
+
+  // Clear existing bars
+  for (const bar of existingBars) {
+    scene.remove(bar)
+  }
+
+  const newBars: THREE.Mesh[] = []
+
+  const barGeometry = new THREE.BoxGeometry(1, 1, 1)
+  const barMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+
+  for (let i = 0; i < analyserFrequencyBinCount; i += 1) {
+    const bar = new THREE.Mesh(barGeometry, barMaterial)
+    bar.position.x = (i / analyserFrequencyBinCount) * 10 - 5
+    scene.add(bar)
+    newBars.push(bar)
+  }
+
+  return newBars
+}
+
 
   const renderWaveform = () => {
     // To do: Create this code for rendering waveform
@@ -33,10 +72,14 @@ const Visualiser = () => {
     // To do: Create this code for rendering rotating cube
   }
 
-  const renderVisualiser = () => {
+  const renderVisualiser = (
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    renderer: THREE.WebGLRenderer
+  ) => {
     switch (currentVisualiser) {
       case VisualiserType.Bars:
-        renderFrequencyBars()
+        renderFrequencyBars(scene!, camera!, renderer!, analyser, bars || [])
         break
       case VisualiserType.Waveform:
         renderWaveform()
@@ -54,14 +97,10 @@ const Visualiser = () => {
   }
 
   useEffect(() => {
-    let audioContext: AudioContext
-    let analyser: AnalyserNode | undefined
-    let dataArray: Uint8Array
     let scene: THREE.Scene | undefined
     let camera: THREE.PerspectiveCamera | undefined
     let renderer: THREE.WebGLRenderer | undefined
     let bars: THREE.Mesh[] = []
-
     const ensureAudioContext = () => {
       if (audioContext.state === 'suspended') {
         audioContext.resume()
@@ -80,7 +119,7 @@ const Visualiser = () => {
 
       const { width, height } = canvas
       const barWidth = width / (analyser?.frequencyBinCount || 1)
-      renderVisualiser()
+      renderVisualiser(sceneInstance, cameraInstance, rendererInstance)
 
       ensureAudioContext()
       analyser?.getByteFrequencyData(dataArray)
@@ -105,58 +144,41 @@ const Visualiser = () => {
     }
 
     const animateThreeJsVisualiser = () => {
-      if (bars.length === 0 || !analyser || !scene || !camera || !renderer) {
-        console.error(
-          'Bars, Analyser, Scene, Camera, or Renderer not initialized.'
-        )
-        return
-      }
+  if (!rendererInstance) {
+    return
+  }
 
-      analyser.getByteFrequencyData(dataArray)
-
-      const analyserFrequencyBinCount = analyser.frequencyBinCount
-
-      for (let i = 0; i < analyserFrequencyBinCount; i += 1) {
-        const scale = dataArray[i] / 255
-        const barHeight = scale * 10 // Adjust the height scale as needed
-        bars[i].scale.y = barHeight
-      }
-
-      renderer.render(scene, camera)
-      requestAnimationFrame(animateThreeJsVisualiser)
-    }
+  rendererInstance.render(sceneInstance, cameraInstance);
+  requestAnimationFrame(animateThreeJsVisualiser);
 
     const initThreeJs = () => {
-      scene = new THREE.Scene()
-      camera = new THREE.PerspectiveCamera(
+      sceneInstance = new THREE.Scene()
+      cameraInstance = new THREE.PerspectiveCamera(
         75,
         window.innerWidth / window.innerHeight,
         0.1,
         1000
       )
-      renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current! })
-      renderer.setSize(window.innerWidth, window.innerHeight)
+      rendererInstance = new THREE.WebGLRenderer({ canvas: canvasRef.current! })
+      rendererInstance.setSize(window.innerWidth, window.innerHeight)
 
       if (!analyser) {
         console.error('Analyser is not initialized.')
         return
       }
 
-      const barGeometry = new THREE.BoxGeometry(1, 1, 1)
-      const barMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+      const newBars = renderFrequencyBars(
+        sceneInstance!,
+        cameraInstance!,
+        rendererInstance!,
+        analyser,
+        bars || []
+      )
+      bars = newBars
+      // const analyserFrequencyBinCount = analyser?.frequencyBinCount || 1
+      // Call renderFrequencyBars and update the bars variable
 
-      bars = []
-
-      const analyserFrequencyBinCount = analyser?.frequencyBinCount || 1
-
-      for (let i = 0; i < analyserFrequencyBinCount; i += 1) {
-        const bar = new THREE.Mesh(barGeometry, barMaterial)
-        bar.position.x = (i / analyserFrequencyBinCount) * 10 - 5
-        scene.add(bar)
-        bars.push(bar)
-      }
-
-      camera.position.z = 5
+      cameraInstance.position.z = 5
     }
 
     const initAudio = async () => {
