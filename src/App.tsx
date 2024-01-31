@@ -16,6 +16,7 @@ import SpotifyProvider from './components/Integrations/Spotify/SpotifyProvider'
 import { ledfxThemes, ledfxTheme, common } from './themes/AppThemes'
 import xmas from './assets/xmas.png'
 import newyear from './assets/fireworks.jpg'
+import login from './utils/login'
 
 export default function App() {
   const { height, width } = useWindowDimensions()
@@ -29,6 +30,8 @@ export default function App() {
   const shutdown = useStore((state) => state.shutdown)
   const showSnackbar = useStore((state) => state.ui.showSnackbar)
   const darkMode = useStore((state) => state.ui.darkMode)
+  const setCoreParams = useStore((state) => state.setCoreParams)
+  const setCoreStatus = useStore((state) => state.setCoreStatus)
 
   const theme = useMemo(
     () =>
@@ -74,9 +77,12 @@ export default function App() {
         '%c HomeAssistant detected ',
         'padding: 3px 5px; border-radius: 5px; color: #ffffff; background-color: #038fc7;'
       )
-    ;(window as any).api?.send('toMain', 'get-platform')
+    if (isElectron()) {
+      ;(window as any)?.api?.send('toMain', { command: 'get-platform' })
+      ;(window as any)?.api?.send('toMain', { command: 'get-core-params' })
+    }
   }, [])
-  ;(window as any).api?.receive('fromMain', (parameters: string) => {
+  ;(window as any).api?.receive('fromMain', (parameters: any) => {
     if (parameters === 'shutdown') {
       shutdown()
     }
@@ -88,10 +94,25 @@ export default function App() {
       console.log(parameters[1])
     }
     if (parameters[0] === 'protocol') {
+      // console.log('protocol', parameters[1])
       setProtoCall(JSON.parse(parameters[1]).commandLine.pop())
+    }
+    if (parameters[0] === 'snackbar') {
+      showSnackbar('info', parameters[1])
+    }
+    if (parameters[0] === 'coreParams') {
+      // console.log('coreParams', parameters[1])
+      setCoreParams(parameters[1])
+    }
+    if (parameters[0] === 'status') {
+      // console.log('status', parameters[1])
+      setCoreStatus(parameters[1])
     }
     if (parameters === 'clear-frontend') {
       deleteFrontendConfig()
+    }
+    if (parameters === 'all-windows') {
+      // console.log('all-windows', parameters[1])
     }
   })
 
@@ -107,7 +128,7 @@ export default function App() {
 
   useEffect(() => {
     if (protoCall !== '') {
-      showSnackbar('info', `External call: ${protoCall}`)
+      // showSnackbar('info', `External call: ${protoCall}`)
       const proto = protoCall.split('/').filter((n) => n)
       // eslint-disable-next-line no-console
       console.table({
@@ -125,6 +146,12 @@ export default function App() {
           proto[2].replace('?code=', '').replace('#%2FIntegrations%3F', ''),
           { expires: expDate }
         )
+      } else if (proto[1] === 'auth') {
+        login(proto.join().split('redirect?')[1]).then(() => {
+          window.location.reload()
+        })
+      } else {
+        showSnackbar('info', `External call: ${protoCall}`)
       }
       setProtoCall('')
     }

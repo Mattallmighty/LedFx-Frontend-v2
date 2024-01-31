@@ -9,7 +9,8 @@ import {
   GitHub,
   ChevronLeft,
   Login,
-  Logout
+  Logout,
+  Lan
 } from '@mui/icons-material'
 import isElectron from 'is-electron'
 import {
@@ -23,10 +24,11 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  Button
+  Button,
+  useTheme
 } from '@mui/material'
 import { styled } from '@mui/styles'
-import { useTheme } from '@mui/material/styles'
+
 import useStore from '../../store/useStore'
 import { drawerWidth, ios } from '../../utils/helpers'
 import TourDevice from '../Tours/TourDevice'
@@ -149,8 +151,9 @@ const Title = (pathname: string, latestTag: string, virtuals: any) => {
 const TopBar = () => {
   // const classes = useStyles();
   const navigate = useNavigate()
-
   const theme = useTheme()
+
+  const [loggingIn, setLogginIn] = useState(false)
 
   const open = useStore((state) => state.ui.bars && state.ui.bars?.leftBar.open)
   const latestTag = useStore((state) => state.ui.latestTag)
@@ -160,6 +163,7 @@ const TopBar = () => {
   // const setDarkMode = useStore((state) => state.ui.setDarkMode);
   const virtuals = useStore((state) => state.virtuals)
   const setDialogOpen = useStore((state) => state.setDialogOpen)
+  const setHostManager = useStore((state) => state.setHostManager)
   const toggleGraphs = useStore((state) => state.toggleGraphs)
   const graphs = useStore((state) => state.graphs)
   // const config = useStore((state) => state.config);
@@ -178,10 +182,12 @@ const TopBar = () => {
   const invIntegrations = useStore((state) => state.tours.integrations)
   const invDevices = useStore((state) => state.tours.devices)
   const invScenes = useStore((state) => state.tours.scenes)
+  const coreParams = useStore((state) => state.coreParams)
+  const isCC = coreParams && Object.keys(coreParams).length > 0
   const updateNotificationInterval = useStore(
     (state) => state.updateNotificationInterval
   )
-
+  const isCreator = localStorage.getItem('ledfx-cloud-role') === 'creator'
   const invisible = () => {
     switch (pathname.split('/')[1]) {
       case 'device':
@@ -204,6 +210,10 @@ const TopBar = () => {
   }
   const changeHost = () => {
     setDialogOpen(true, true)
+    setAnchorEl(null)
+  }
+  const changeHostManager = () => {
+    setHostManager(true)
     setAnchorEl(null)
   }
   // const toggleDarkMode = () => {
@@ -423,6 +433,14 @@ const TopBar = () => {
                   </ListItemIcon>
                   Change Host
                 </MenuItem>
+                {isCC && isCreator && (
+                  <MenuItem onClick={changeHostManager}>
+                    <ListItemIcon>
+                      <Lan />
+                    </ListItemIcon>
+                    Host Manager
+                  </MenuItem>
+                )}
                 {/* <MenuItem onClick={toggleDarkMode}>
               <ListItemIcon>
                 <Language />
@@ -455,13 +473,22 @@ const TopBar = () => {
 
                 {features.cloud && (
                   <MenuItem
-                    onClick={(e) => {
+                    onClick={(e: any) => {
+                      e.preventDefault()
+                      setLogginIn(true)
                       if (isLogged) {
+                        setLogginIn(false)
                         logout(e)
                       } else if (
                         window.location.pathname.includes('hassio_ingress')
                       ) {
                         window.location.href = `https://strapi.yeonv.com/connect/github?callback=${window.location.origin}`
+                      } else if (isElectron()) {
+                        window.open(
+                          'https://strapi.yeonv.com/connect/github?callback=ledfx://auth/github/',
+                          '_blank',
+                          'noopener,noreferrer'
+                        )
                       } else {
                         window.open(
                           `https://strapi.yeonv.com/connect/github?callback=${window.location.origin}`,
@@ -472,7 +499,15 @@ const TopBar = () => {
                     }}
                   >
                     <ListItemIcon>
-                      {isLogged ? <Logout /> : <Login />}
+                      {isLogged ? (
+                        <Logout />
+                      ) : loggingIn ? (
+                        <Box sx={{ display: 'flex', marginLeft: 0.6 }}>
+                          <CircularProgress size="0.9rem" />
+                        </Box>
+                      ) : (
+                        <Login />
+                      )}
                     </ListItemIcon>
                     {isLogged ? 'Logout' : 'Login with Github'}
                   </MenuItem>

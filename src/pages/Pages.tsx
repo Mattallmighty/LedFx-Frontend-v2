@@ -37,6 +37,8 @@ const Routings = ({ handleWs }: any) => {
   const isElect = isElectron()
   const mp = useStore((state) => state.ui.mp)
   const setMp = useStore((state) => state.ui.setMp)
+  const setFeatures = useStore((state) => state.setFeatures)
+  const setShowFeatures = useStore((state) => state.setShowFeatures)
   const smartBarOpen = useStore(
     (state) => state.ui.bars && state.ui.bars.smartBar.open
   )
@@ -63,6 +65,12 @@ const Routings = ({ handleWs }: any) => {
       window.location.reload()
     })
   }
+  useHotkeys(['ctrl+alt+a'], () => {
+    setFeatures('beta', true)
+    setFeatures('alpha', true)
+    setShowFeatures('alpha', true)
+    setShowFeatures('beta', true)
+  })
 
   return (
     <>
